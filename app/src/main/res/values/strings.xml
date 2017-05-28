@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">IoTrade</string>
+    <string name="search_hint">Buscar</string>
+    <string name="loading">Carregando...</string>
+    <string name="filter">Filtro</string>
+    <string name="menu">Menu</string>
+    <string name="sensors">Sensores</string>
+    <string name="confirm">Confirmar</string>
+    <string name="category">Categoria</string>
+    <string name="price_max">Preço Máximo</string>
+    <string name="price">Preço</string>
+    <string name="save">Salvar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="empty">Vazio</string>
+    <string name="location_permission">Precisa da sua localização para essa funcionalidade!</string>
+    <string name="network_error">Erro na rede! Tente Novamente</string>
+    <string name="dialog_rating">Nos diga o seu Feedback do Serviço</string>
+    <string name="list_services_price">Preço: %1$s</string>
+</resources>
