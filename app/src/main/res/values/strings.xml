@@ -16,4 +16,8 @@
     <string name="network_error">Erro na rede! Tente Novamente</string>
     <string name="dialog_rating">Nos diga o seu Feedback do Serviço</string>
     <string name="list_services_price">Preço: %1$s</string>
+    <string name="analytics_service_dialog_text">Deseja adicionar o serviço de Analytics?</string>
+    <string name="yes">Sim</string>
+    <string name="no">Não</string>
+    <string name="no_sensors_available">Nenhum serviço na faixa de preço selecionada!</string>
 </resources>

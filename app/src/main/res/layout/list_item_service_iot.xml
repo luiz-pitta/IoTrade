@@ -42,28 +42,6 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/text2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:gravity="center_vertical"
-            android:maxLines="4"
-            android:text="Text"
-            android:textColor="@color/grey_500"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/text3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:gravity="center_vertical"
-            android:maxLines="4"
-            android:text="Text"
-            android:textColor="@color/grey_500"
-            android:textSize="14sp" />
-
     </LinearLayout>
 
     <LinearLayout

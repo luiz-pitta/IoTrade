@@ -81,7 +81,8 @@
             android:textAllCaps="true"
             android:textColor="@color/grey_900"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="gone"/>
 
     </LinearLayout>
 

@@ -1,29 +1,22 @@
 package com.lac.pucrio.luizpitta.iotrade.Models;
 
+/**
+ * Modelo onde se armazena as do usuário
+ *
+ * @author Luiz Guilherme Pitta
+ */
+public class User {
 
-import java.io.Serializable;
-
-public class User implements Serializable {
-    private static final long serialVersionUID = 3L;
-
-    private String name;
-    private String email;
+    /**
+     * Variáveis
+     */
     private double budget;
 
-    public User() {
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
+    /**
+     * @return Retorna o orçamento.
+     */
     public double getBudget() {
         return budget;
     }
-
 
 }

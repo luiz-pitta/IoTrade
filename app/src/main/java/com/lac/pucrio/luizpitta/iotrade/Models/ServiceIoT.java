@@ -1,50 +1,61 @@
 package com.lac.pucrio.luizpitta.iotrade.Models;
 
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
-public class ServiceIoT implements Serializable {
-    private static final long serialVersionUID = 4L;
-
+/**
+ * Modelo onde se armazena as informações gerais de um serviço genérico
+ *
+ * @author Luiz Guilherme Pitta
+ */
+public class ServiceIoT {
+    /**
+     * Variáveis
+     */
     private String title;
-    private String description;
     private Double price;
     private Double lat, lng;
 
+    /**
+     * Classe Builder para construção do Modelo.
+     */
     public ServiceIoT() {
     }
 
-    public ServiceIoT(String title, String description) {
-        this.title = title;
-        this.description = description;
-    }
-
+    /**
+     * @return Retorna o título.
+     */
     public String getTitle() {
         return title;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
+    /**
+     * @return Retorna o preço.
+     */
     public Double getPrice() {
         return price;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
+    /**
+     * Método que seta o título do sensor
+     *
+     * @param title título
+     */
     public void setTitle(String title) {
         this.title = title;
     }
 
+    /**
+     * Método que seta a latitude baseado no GPS do smartphone
+     *
+     * @param lat latitude
+     */
     public void setLat(Double lat) {
         this.lat = lat;
     }
 
+    /**
+     * Método que seta a longitude baseado no GPS do smartphone
+     *
+     * @param lng longitude
+     */
     public void setLng(Double lng) {
         this.lng = lng;
     }

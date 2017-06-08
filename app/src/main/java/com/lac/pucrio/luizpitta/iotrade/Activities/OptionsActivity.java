@@ -1,37 +1,23 @@
 package com.lac.pucrio.luizpitta.iotrade.Activities;
 
-import android.Manifest;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
-import android.support.v13.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.jude.easyrecyclerview.EasyRecyclerView;
 import com.jude.easyrecyclerview.adapter.RecyclerArrayAdapter;
 import com.jude.easyrecyclerview.decoration.DividerDecoration;
 import com.lac.pucrio.luizpitta.iotrade.Adapters.SensorPriceAdapter;
-import com.lac.pucrio.luizpitta.iotrade.Adapters.ServiceIoTAdapter;
 import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
-import com.lac.pucrio.luizpitta.iotrade.Models.ServiceIoT;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
 import com.lac.pucrio.luizpitta.iotrade.R;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
@@ -42,13 +28,28 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
-public class OptionsActivity extends AppCompatActivity implements View.OnClickListener {
+/**
+ * Classe onde se apresentam os sensores registrados na aplicação, onde administrador
+ * pode alterar os valores deles
+ *
+ * @author Luiz Guilherme Pitta
+ */
+public class OptionsActivity extends AppCompatActivity {
 
-    private CompositeSubscription mSubscriptions;
+    /**
+     * Componentes de interface
+     */
     private EasyRecyclerView recyclerView;
-    private SensorPriceAdapter adapter;
-    private Handler handler = new Handler();
 
+    /**
+     * Variáveis
+     */
+    private CompositeSubscription mSubscriptions;
+    private SensorPriceAdapter adapter;
+
+    /**
+     * Método do sistema Android, chamado ao criar a Activity
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,6 +82,29 @@ public class OptionsActivity extends AppCompatActivity implements View.OnClickLi
         getSensorInformation();
     }
 
+    /**
+     * Método do sistema Android, chamado ao destruir a Activity
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSubscriptions.unsubscribe();
+    }
+
+    /**
+     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
+     * pelo gerenciador de memória do sistema
+     */
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
+    /**
+     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos sensores
+     *
+     * @param sensorPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     */
     private void updateSensorInformation(SensorPrice sensorPrice) {
         mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorInformation(sensorPrice)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -88,11 +112,21 @@ public class OptionsActivity extends AppCompatActivity implements View.OnClickLi
                 .subscribe(this::handleResponseUpdate,this::handleError));
     }
 
+    /**
+     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     *
+     *
+     * @param response Retorna mensagem que rodou corretamente.
+     */
     private void handleResponseUpdate(Response response) {
         getSensorInformation();
         Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * Metódo que irá fazer a requisição ao servidor para pegar as informações dos sensores
+     *
+     */
     private void getSensorInformation() {
         mSubscriptions.add(NetworkUtil.getRetrofit().getSensorPrice()
                 .observeOn(AndroidSchedulers.mainThread())
@@ -100,37 +134,37 @@ public class OptionsActivity extends AppCompatActivity implements View.OnClickLi
                 .subscribe(this::handleResponse,this::handleError));
     }
 
+    /**
+     * Metódo que recebe a resposta do servidor com as informações dos sensores
+     *
+     *
+     * @param response Objeto com a lista de sensores retornada pelo servidor.
+     */
     private void handleResponse(Response response) {
         adapter.clear();
         adapter.addAll(response.getSensorPrice());
     }
 
+    /**
+     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     *
+     *
+     * @param error Retorna objeto com o erro que ocorreu.
+     */
     private void handleError(Throwable error) {
         Toast.makeText(this, getResources().getString(R.string.network_error), Toast.LENGTH_LONG).show();
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mSubscriptions.unsubscribe();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    public void onClick(View view) {
-
-    }
-
+    /**
+     * Metódo cria um diálogo pop-up para perguntar ao administrador quais informações ele deseja
+     * alterar para detarminado sensor
+     *
+     * @param item posição do sensor na lista.
+     */
     private void createDialogUpdate(int item) {
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View customView = inflater.inflate(R.layout.dialog_message, null);
 
-        TextView text1 = (TextView) customView.findViewById(R.id.text1);
-        TextView text2 = (TextView) customView.findViewById(R.id.text2);
         TextView buttonText1 = (TextView) customView.findViewById(R.id.buttonText1);
         TextView buttonText2 = (TextView) customView.findViewById(R.id.buttonText2);
         EditText editText = (EditText) customView.findViewById(R.id.editText);
