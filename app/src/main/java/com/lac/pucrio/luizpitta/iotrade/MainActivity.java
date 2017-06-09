@@ -13,6 +13,7 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -44,6 +45,7 @@ import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -80,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //private double lat = -500, lng = -500;
     private double lat = -22.92484013, lng = -43.25909615;
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
+    private long currentTime, currentTimeAfter, diff;
 
     /**
      * Listner que é chamado ao usuário digitar algum caractere no campo de busca
@@ -371,6 +374,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param response Objeto com o conjunto de serviços escolhidos.
      */
     private void handleSensorChosen(Response response) {
+        currentTimeAfter = Calendar.getInstance().getTimeInMillis();
+        diff = currentTimeAfter-currentTime;
+        Log.d("Tempo Matchmaking (Ms)", String.valueOf(diff) + "ms");
         SensorPrice sensorPrice = response.getSensor();
         if(sensorPrice != null)
             createDialogRating(response.getSensor(), response.getConnect(), response.getAnalytics());
@@ -446,6 +452,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonText1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                currentTime = Calendar.getInstance().getTimeInMillis();
                 getSensorChosen(sensor);
                 dialog.dismiss();
             }
@@ -454,6 +461,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonText2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                currentTime = Calendar.getInstance().getTimeInMillis();
                 getSensorChosenAnalytics(sensor);
                 dialog.dismiss();
             }

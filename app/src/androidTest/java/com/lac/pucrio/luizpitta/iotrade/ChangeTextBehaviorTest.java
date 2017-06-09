@@ -46,7 +46,6 @@ public class ChangeTextBehaviorTest {
         onView(withId(R.id.value))
                 .perform(typeText(mStringToBetyped), closeSoftKeyboard());
         onView(withId(R.id.value)).perform(click());
-
         // Check that the text was changed.
         onView(withId(R.id.value))
                 .check(matches(withText(mStringToBetyped)));
