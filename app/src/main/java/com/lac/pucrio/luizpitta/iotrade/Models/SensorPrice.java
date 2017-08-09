@@ -51,6 +51,13 @@ public class SensorPrice {
     }
 
     /**
+     * @return Retorna o rank.
+     */
+    public double getRank() {
+        return rank;
+    }
+
+    /**
      * Método que seta a categoria do sensor
      *
      * @param category categoria

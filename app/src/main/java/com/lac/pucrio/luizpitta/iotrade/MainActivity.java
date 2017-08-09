@@ -495,12 +495,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if(analyticsPrice == null) {
             total_price = sensorPrice.getPrice() + connectPrice.getPrice();
-            sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\nMobile Hub: " + connectPrice.getTitle() + "\nCusto total: R$" + total_price);
+            sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\n" +
+                    "Nota: " + sensorPrice.getRank() + "\n\n" +
+                    "Mobile Hub: " + connectPrice.getTitle() + "\n" +
+                    "Nota: " + connectPrice.getRank() + "\n\n" +
+                    "Custo total: R$" + total_price);
         }
         else {
             total_price = sensorPrice.getPrice() + connectPrice.getPrice() + analyticsPrice.getPrice();
-            sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\nMobile Hub: " + connectPrice.getTitle() +
-                    "\nAnalytics: " + analyticsPrice.getTitle() + "\nCusto total: R$" + total_price);
+            sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\n" +
+                    "Nota: " + sensorPrice.getRank() + "\n\n" +
+                    "Mobile Hub: " + connectPrice.getTitle() + "\n" +
+                    "Nota: " + connectPrice.getRank() + "\n\n" +
+                    "Analytics: " + analyticsPrice.getTitle() + "\n" +
+                    "Nota: " + analyticsPrice.getRank() + "\n\n" +
+                    "Custo total: R$" + total_price);
         }
 
         mSmileRating.setSelectedSmile(BaseRating.GREAT);

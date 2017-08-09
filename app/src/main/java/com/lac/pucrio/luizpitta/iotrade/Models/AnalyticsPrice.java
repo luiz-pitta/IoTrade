@@ -23,6 +23,13 @@ public class AnalyticsPrice {
     }
 
     /**
+     * @return Retorna o rank.
+     */
+    public double getRank() {
+        return rank;
+    }
+
+    /**
      * @return Retorna o preço.
      */
     public double getPrice() {
