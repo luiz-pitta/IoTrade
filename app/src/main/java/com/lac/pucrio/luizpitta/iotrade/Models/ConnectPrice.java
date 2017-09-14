@@ -10,16 +10,24 @@ public class ConnectPrice {
     /**
      * Variáveis
      */
-    private String title;
+    private String device;
+    private String uuid;
     private String category;
     private double price;
     private double rank;
 
     /**
+     * @return Retorna o uuid.
+     */
+    public String getUuid() {
+        return uuid;
+    }
+
+    /**
      * @return Retorna o título.
      */
     public String getTitle() {
-        return title;
+        return device;
     }
 
     /**

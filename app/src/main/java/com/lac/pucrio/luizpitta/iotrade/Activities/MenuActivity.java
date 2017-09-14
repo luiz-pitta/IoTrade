@@ -1,5 +1,6 @@
 package com.lac.pucrio.luizpitta.iotrade.Activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -11,6 +12,11 @@ import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
 import com.lac.pucrio.luizpitta.iotrade.R;
+import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
+import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -50,6 +56,8 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
 
         confirmationButton.setOnClickListener(this);
 
+        EventBus.getDefault().register( this );
+
         getUserInformation();
     }
 
@@ -60,6 +68,14 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     public void onDestroy() {
         super.onDestroy();
         mSubscriptions.unsubscribe();
+
+        EventBus.getDefault().unregister( this );
+    }
+
+    @SuppressWarnings("unused")
+    @Subscribe()
+    public void onEventMainThread( SensorPrice sensorPrice ) {
+        Toast.makeText(this, "Passei", Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -73,6 +89,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
             SensorPrice sensorPrice = new SensorPrice();
             sensorPrice.setPrice(Double.valueOf(value.getText().toString()));
             updateUserBudget(sensorPrice);
+            //EventBus.getDefault().post( sensorPrice );
         }
     }
 

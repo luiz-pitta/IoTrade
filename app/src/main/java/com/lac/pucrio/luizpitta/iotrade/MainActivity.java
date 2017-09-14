@@ -41,8 +41,13 @@ import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.ServiceIoT;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
+import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
+import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -160,6 +165,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         recyclerView.showProgress();
+
+        Intent iConn = new Intent( this, ConnectionService.class );
+
+        if( AppUtils.isMyServiceRunning( this, ConnectionService.class.getName() ) )
+            stopService( iConn );
+
+        startService( iConn );
+
+        EventBus.getDefault().register( this );
     }
 
     /**
@@ -191,6 +205,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onDestroy() {
         super.onDestroy();
         mSubscriptions.unsubscribe();
+
+        EventBus.getDefault().unregister( this );
     }
 
     /**
@@ -536,6 +552,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dialog.setCanceledOnTouchOutside(true);
 
         dialog.show();
+    }
+
+    @SuppressWarnings("unused")
+    @Subscribe()
+    public void onEventMainThread( SensorPrice sensorPrice ) {
+        Toast.makeText(this, "Passei", Toast.LENGTH_LONG).show();
     }
 
     /**
