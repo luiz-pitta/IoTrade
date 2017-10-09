@@ -20,6 +20,7 @@ public class Response {
     private AnalyticsPrice analytics;
     private ArrayList<String> categories;
     private User user;
+    private double price;
 
     /**
      * Classe Builder para construção do Adaptador.
@@ -49,6 +50,13 @@ public class Response {
      */
     public ConnectPrice getConnect() {
         return connect;
+    }
+
+    /**
+     * @return Retorna o preço de um objecto #ConnectPrice.
+     */
+    public double getPrice() {
+        return price;
     }
 
     /**

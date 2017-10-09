@@ -1,5 +1,6 @@
 package com.lac.pucrio.luizpitta.iotrade.Network;
 
+import com.lac.pucrio.luizpitta.iotrade.Models.ConnectPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.ObjectServer;
 import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
@@ -24,6 +25,12 @@ public interface RetrofitInterface {
     Observable<Response> getSensorPrice();
 
     /**
+     * @return Retorna as informações dos sensores.
+     */
+    @POST("get_connect_price_information/")
+    Observable<Response> getConnectPrice(@Body ConnectPrice connectPrice);
+
+    /**
      * @return Retorna o usuário do servidor.
      */
     @GET("get_user/")
@@ -40,6 +47,12 @@ public interface RetrofitInterface {
      */
     @POST("update_user_budget/")
     Observable<Response> updateUserBudget(@Body SensorPrice sensorPrice);
+
+    /**
+     * @return Retorna uma mensagem que tudo ocorreu certo na atualização dos dados.
+     */
+    @POST("set_actuator_state/")
+    Observable<Response> setActuatorState(@Body SensorPrice sensorPrice);
 
     /**
      * @return Retorna uma mensagem que tudo ocorreu certo na atualização dos dados.

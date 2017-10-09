@@ -1,11 +1,15 @@
 package com.lac.pucrio.luizpitta.iotrade.Models;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+
 /**
  * Modelo onde se armazena as informações de um sensor
  *
  * @author Luiz Guilherme Pitta
  */
-public class SensorPrice {
+public class SensorPrice implements Serializable {
+    private static final long serialVersionUID = 4L;
 
     /**
      * Variáveis
@@ -16,11 +20,38 @@ public class SensorPrice {
     private double price;
     private double rank;
     private String category_new;
+    private String macAddress;
+    private String uuidData;
+    private String unit;
+    private boolean actuator;
+    private ArrayList<String> option_description;
+    private ArrayList<String> option_bytes;
 
     /**
      * Classe Builder para construção do Modelo.
      */
     public SensorPrice() {}
+
+    /**
+     * @return Retorna o unidade de medida.
+     */
+    public String getUnit() {
+        return unit;
+    }
+
+    /**
+     * @return Retorna o título.
+     */
+    public String getUuidData() {
+        return uuidData;
+    }
+
+    /**
+     * @return Retorna o título.
+     */
+    public String getMacAdress() {
+        return macAddress;
+    }
 
     /**
      * @return Retorna o título.
@@ -34,6 +65,27 @@ public class SensorPrice {
      */
     public String getDescription() {
         return description;
+    }
+
+    /**
+     * @return Retorna os comandos de atuação.
+     */
+    public ArrayList<String> getOptionBytes() {
+        return option_bytes;
+    }
+
+    /**
+     * @return Retorna a descrição dos serviços de atuação.
+     */
+    public ArrayList<String> getOptionDescription() {
+        return option_description;
+    }
+
+    /**
+     * @return Retorna se é atuador.
+     */
+    public boolean isActuator() {
+        return actuator;
     }
 
     /**
@@ -82,6 +134,15 @@ public class SensorPrice {
      */
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    /**
+     * Método que seta o macAddress do sensor
+     *
+     * @param macAddress macAddress
+     */
+    public void setMacAddress(String macAddress) {
+        this.macAddress = macAddress;
     }
 
     /**

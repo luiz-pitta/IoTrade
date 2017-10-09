@@ -9,7 +9,9 @@ import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +20,7 @@ import lac.cnclib.net.NodeConnection;
 import lac.cnclib.net.NodeConnectionListener;
 import lac.cnclib.sddl.message.ApplicationMessage;
 import lac.cnclib.sddl.message.Message;
+import com.infopae.model.SendSensorData;
 
 /**
  * Receives the messages from the cloud, is the listener for
@@ -73,14 +76,26 @@ public class ConnectionListener implements NodeConnectionListener {
 		AppUtils.logger( 'i', TAG, "InternalException... " + e.getMessage() );
 	}
 
+	public static double[] toDoubleArray(byte[] byteArray){
+		int times = Double.SIZE / Byte.SIZE;
+		double[] doubles = new double[byteArray.length / times];
+		for(int i=0;i<doubles.length;i++){
+			doubles[i] = ByteBuffer.wrap(byteArray, i*times, times).getDouble();
+		}
+		return doubles;
+	}
+
 	@Override
 	public void newMessageReceived( NodeConnection nc, Message m ) {
 		AppUtils.logger( 'i', TAG, "NewMessageReceived..." );
 
 		if( m.getContentObject() instanceof String) {
 			String str = m.getContentObject().toString();
-			AppUtils.logger( 'i', TAG, str );
-            cm.routeMessage( str );
+			//AppUtils.logger( 'i', TAG, str );
+            //cm.routeMessage( str );
+		}else if(m.getContentObject() instanceof SendSensorData) {
+			SendSensorData sendSensorData = (SendSensorData)m.getContentObject();
+			EventBus.getDefault().post( sendSensorData );
 		}
 	}
 
@@ -98,7 +113,7 @@ public class ConnectionListener implements NodeConnectionListener {
     private void sendACKMessage( NodeConnection nc ) {
         // Send a message once we are reconnected
         ApplicationMessage am = new ApplicationMessage();
-        am.setContentObject( "ack" );
+        am.setContentObject("ack");
         am.setTagList( new ArrayList<String>() );
         am.setSenderID( uuid );
 

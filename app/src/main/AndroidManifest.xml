@@ -32,6 +32,10 @@
 
         <service android:name=".Services.ConnectionService" />
 
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBbg3jlffhS_2hg3D-6K3_cZuCDBPDzYrA" />
+
         <activity
             android:name=".Activities.MenuActivity"
             android:label="@string/menu"
@@ -41,7 +45,67 @@
             <!-- The meta-data element is needed for versions lower than 4.1 -->
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".Activities.MenuActivity" />
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".Activities.ResultActivity"
+            android:label="@string/data"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".MainActivity" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".Activities.ActuatorActivity"
+            android:label="@string/actuator"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".MainActivity" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".Activities.AnalyticsActivity"
+            android:label="@string/analytics"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".MainActivity" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".Activities.AnalyticsOptionActivity"
+            android:label="@string/analytics"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".Activities.AnalyticsActivity" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".Activities.AnalyticsActivity" />
+        </activity>
+
+        <activity
+            android:name=".Activities.AnalyticsChartActivity"
+            android:label="@string/analytics"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".Activities.AnalyticsActivity" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".Activities.AnalyticsActivity" />
         </activity>
 
         <activity
@@ -53,7 +117,7 @@
             <!-- The meta-data element is needed for versions lower than 4.1 -->
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".Activities.OptionsActivity" />
+                android:value=".MainActivity" />
         </activity>
     </application>
 

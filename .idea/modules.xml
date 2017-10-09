@@ -5,6 +5,8 @@
       <module fileurl="file://$PROJECT_DIR$/IoTrade.iml" filepath="$PROJECT_DIR$/IoTrade.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/easyrecyclerview/easyrecyclerview.iml" filepath="$PROJECT_DIR$/easyrecyclerview/easyrecyclerview.iml" />
+      <module fileurl="file://$PROJECT_DIR$/hellocharts-library/hellocharts-library.iml" filepath="$PROJECT_DIR$/hellocharts-library/hellocharts-library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/infoPAEModel/infoPAEModel.iml" filepath="$PROJECT_DIR$/infoPAEModel/infoPAEModel.iml" />
       <module fileurl="file://$PROJECT_DIR$/smilerating/smilerating.iml" filepath="$PROJECT_DIR$/smilerating/smilerating.iml" />
     </modules>
   </component>

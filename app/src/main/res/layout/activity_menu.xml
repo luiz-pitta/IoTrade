@@ -52,6 +52,103 @@
             android:layout_height="@dimen/horizontal_line_height"
             android:background="@color/horizontal_line" />
 
+        <RelativeLayout
+            android:id="@+id/locationBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:padding="5dp">
+
+            <ImageView
+                android:id="@+id/locationIcon"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="10dp"
+                android:src="@drawable/ic_location"
+                android:tint="@color/grey_600" />
+
+            <TextView
+                android:id="@+id/locationText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="10dp"
+                android:layout_toLeftOf="@+id/cleanText"
+                android:layout_toRightOf="@+id/locationIcon"
+                android:background="@drawable/bg_act_edit_box"
+                android:hint="@string/hint_local"
+                android:inputType="text"
+                android:lines="1"
+                android:padding="10dp"
+                android:textColor="@color/grey_600"
+                android:textColorHint="@color/grey_400"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/cleanText"
+                android:layout_marginRight="7.5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="@string/clean"
+                android:textAllCaps="true"
+                android:textColor="@color/deep_purple_400"
+                android:textSize="14sp"
+                android:textStyle="normal" />
+
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/radiusBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:padding="5dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:ellipsize="end"
+                android:lines="1"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:text="@string/radius"
+                android:textAllCaps="true"
+                android:textColor="@color/grey_500"
+                android:textSize="12sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/horizontal_line_height"
+                android:background="@color/horizontal_line" />
+
+            <EditText
+                android:id="@+id/radius"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/white"
+                android:inputType="number"
+                android:paddingBottom="10dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:paddingTop="10dp"
+                android:text="1.5"
+                android:textColor="@color/grey_700"
+                android:textColorHint="@color/grey_700"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/horizontal_line_height"
+                android:background="@color/horizontal_line" />
+
+        </LinearLayout>
+
     </LinearLayout>
 
     <include

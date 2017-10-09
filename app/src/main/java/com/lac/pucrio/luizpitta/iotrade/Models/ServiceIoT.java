@@ -12,6 +12,7 @@ public class ServiceIoT {
     private String title;
     private Double price;
     private Double lat, lng;
+    private Float radius;
 
     /**
      * Classe Builder para construção do Modelo.
@@ -40,6 +41,15 @@ public class ServiceIoT {
      */
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    /**
+     * Método que seta a latitude baseado no GPS do smartphone
+     *
+     * @param radius latitude
+     */
+    public void setRadius(Float radius) {
+        this.radius = radius;
     }
 
     /**

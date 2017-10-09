@@ -10,11 +10,15 @@ import android.net.NetworkInfo;
 import android.os.BatteryManager;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
+import android.widget.Toast;
 
+import com.infopae.model.BuyAnalyticsData;
+import com.infopae.model.SendActuatorData;
 import com.lac.pucrio.luizpitta.iotrade.BroadcastReceivers.BroadcastMessage;
 import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.EventData;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.LocationData;
+import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MessageData;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.SensorData;
 import com.lac.pucrio.luizpitta.iotrade.Services.Listeners.ConnectionListener;
@@ -25,6 +29,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -38,6 +43,7 @@ import lac.cnclib.net.mrudp.MrUdpNodeConnection;
 import lac.cnclib.sddl.message.ApplicationMessage;
 import lac.cnclib.sddl.message.ClientLibProtocol.PayloadSerialization;
 import lac.cnclib.sddl.message.Message;
+import mf.org.apache.xerces.impl.xpath.regex.Match;
 
 public class ConnectionService extends Service {
 	/** DEBUG */
@@ -85,9 +91,6 @@ public class ConnectionService extends Service {
 	private final ConcurrentHashMap<String, Message> lstMsg = new ConcurrentHashMap<>();
 	//private final ConcurrentLinkedQueue<Message> lstMsg = new ConcurrentLinkedQueue<>();
 
-	/** The Local Broadcast Manager */
-	private LocalBroadcastManager lbm;
-
 	/**
 	 * The device connectivity, not related to the MrUDP connection, there are
 	 * 3 types.
@@ -114,10 +117,6 @@ public class ConnectionService extends Service {
 		ac = ConnectionService.this;
         // register to event bus
         EventBus.getDefault().register( this );
-		// get local broadcast
-		lbm = LocalBroadcastManager.getInstance( ac );
-		// register broadcasts
-		registerBroadcasts();
 		// if it is not connected, create a new thread resetting previous threads
 		if( !isConnected ) {
 			// call the bootstrap to initialize all the variables
@@ -140,8 +139,6 @@ public class ConnectionService extends Service {
         AppUtils.logger( 'i', TAG, ">> Destroyed" );
 		// not connected
 		isConnected = false;
-		// unregister broadcasts
-		unregisterBroadcasts();
         // unregister from event bus
         EventBus.getDefault().unregister( this );
 
@@ -310,6 +307,26 @@ public class ConnectionService extends Service {
 			AppUtils.logger( 'e', TAG, ">> isConnected flag not saved" );
 	}
 
+	/**
+	 * Creates an application message to send to the cloud
+	 * It will send the message immediately
+	 * @param s The Mobile Hub Message structure
+	 * @param sender The UUID of the Mobile Hub
+	 */
+	private void createAndSendMsg(Serializable s, UUID sender) {
+
+		try {
+			ApplicationMessage am = new ApplicationMessage();
+			am.setContentObject( s );
+			am.setTagList( new ArrayList<String>() );
+			am.setSenderID( sender );
+
+			connection.sendMessage( am );
+		} catch (Exception e) {
+			AppUtils.logger( 'i', TAG, "Error sending..." );
+		}
+	}
+
     /**
      * Creates an application message to send to the cloud in JSON
      * It includes the current location if exists to the message
@@ -320,7 +337,7 @@ public class ConnectionService extends Service {
      */
     private void createAndQueueMsg(LocalMessage s, UUID sender) {
         s.setUuid( sender.toString() );
-        Double latitude = null, longitude = null;
+        /*Double latitude = null, longitude = null;
 
         // If location service not activated, set location
         if( !AppUtils.getCurrentLocationService( ac ) ) {
@@ -336,7 +353,7 @@ public class ConnectionService extends Service {
         if( latitude != null && longitude != null ) {
             s.setLatitude( latitude );
             s.setLongitude( longitude );
-        }
+        }*/
 
         try {
             ApplicationMessage am = new ApplicationMessage();
@@ -357,22 +374,6 @@ public class ConnectionService extends Service {
             e.printStackTrace();
         }
     }
-
-	/**
-	 * Register/Unregister the broadcast receiver.
-	 */
-	private void registerBroadcasts() {
-		IntentFilter filter = new IntentFilter();
-		filter.addAction( BroadcastMessage.ACTION_CHANGE_MESSAGES_INTERVAL );
-		filter.addAction( BroadcastMessage.ACTION_CONNECTIVITY_CHANGED );
-
-		lbm.registerReceiver( mConnBroadcastReceiver, filter );
-	}
-
-	private void unregisterBroadcasts() {
-        if( lbm != null )
-		    lbm.unregisterReceiver( mConnBroadcastReceiver );
-	}
 
 	@Subscribe()
     @SuppressWarnings("unused") // it's actually used to receive events from the Location Service
@@ -401,40 +402,28 @@ public class ConnectionService extends Service {
             // save the last location (used when a new msg is send)
             lastLocation = locData;
             // add the message to the queue
-            createAndQueueMsg( locData, uuid );
+            //createAndQueueMsg( locData, uuid );
         }
     }
 
+	@Subscribe() @SuppressWarnings("unused")
+	public void onEvent( MatchmakingData matchmakingData ) {
+		if( matchmakingData != null && AppUtils.isInRoute( ROUTE_TAG, matchmakingData.getRoute() ) ) {
+			createAndQueueMsg( matchmakingData, uuid );
+		}
+	}
 
+	@Subscribe() @SuppressWarnings("unused")
+	public void onEvent( SendActuatorData sendActuatorData ) {
+		if( sendActuatorData != null ) {
+			createAndSendMsg( sendActuatorData, uuid );
+		}
+	}
 
-
-    /**
-     * The broadcast receiver for all the services, it will receive all the
-     * updates from the location/mepa/s2pa service and send it to the gateway.
-     */
-    private BroadcastReceiver mConnBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context c, Intent i) {
-            String action = i.getAction();
-
-			/* Broadcast: ACTION_CHANGE_SEND_MESSAGES_INTERVAL */
-			/* *********************************************** */
-            if( action.equals( BroadcastMessage.ACTION_CHANGE_MESSAGES_INTERVAL ) ) {
-                if( !AppUtils.getCurrentEnergyManager( ac ) )
-                    return;
-
-                sendAllMsgsInterval = i.getIntExtra( BroadcastMessage.EXTRA_CHANGE_MESSAGES_INTERVAL, -1 );
-                // problem getting the value from the extra, set the default value
-                if( sendAllMsgsInterval < 0 )
-                    sendAllMsgsInterval = AppConfig.DEFAULT_MESSAGES_INTERVAL_HIGH;
-                // save the preferences with the new value
-                AppUtils.saveCurrentSendMessagesInterval( ac, sendAllMsgsInterval );
-            }
-			/* Broadcast: ACTION_CONNECTIVITY_CHANGED */
-			/* ************************************** */
-            else if( action.equals( BroadcastMessage.ACTION_CONNECTIVITY_CHANGED ) ) {
-                deviceTypeConnectivity = i.getStringExtra( BroadcastMessage.EXTRA_CONNECTIVITY_CHANGED );
-            }
-        }
-    };
+	@Subscribe() @SuppressWarnings("unused")
+	public void onEvent( BuyAnalyticsData buyAnalyticsData ) {
+		if( buyAnalyticsData != null ) {
+			createAndSendMsg( buyAnalyticsData, uuid );
+		}
+	}
 }

@@ -57,6 +57,16 @@ public abstract class LocalMessage implements Serializable {
     // ErrorData
     protected static final String COMPONENT = "component";
     protected static final String MESSAGE   = "message";
+    // Matchmaking
+    protected static final String UUID_MATCH = "uuidMatch";
+    protected static final String UUID_CLIENT   = "uuidClient";
+    protected static final String UUID_ANALYTICS_CLIENT   = "uuidAnalyticsClient";
+    protected static final String UUID_DATA = "uuidData";
+    protected static final String MAC_ADDRESS   = "macAddress";
+    protected static final String START_STOP   = "startStop";
+    // SendSensorData
+    protected static final String DATA_SENSOR = "dataSensor";
+    protected static final String UUID_CLIENTS   = "uuidClients";
 
     /** ID Separator */
     public static final String SEPARATOR = "-";

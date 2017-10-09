@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Handler;
@@ -31,17 +32,28 @@ import com.hsalf.smilerating.SmileRating;
 import com.jude.easyrecyclerview.EasyRecyclerView;
 import com.jude.easyrecyclerview.adapter.RecyclerArrayAdapter;
 import com.jude.easyrecyclerview.decoration.DividerDecoration;
+import com.lac.pucrio.luizpitta.iotrade.Activities.ActuatorActivity;
+import com.lac.pucrio.luizpitta.iotrade.Activities.AnalyticsActivity;
+import com.lac.pucrio.luizpitta.iotrade.Activities.AnalyticsChartActivity;
 import com.lac.pucrio.luizpitta.iotrade.Activities.MenuActivity;
 import com.lac.pucrio.luizpitta.iotrade.Activities.OptionsActivity;
+import com.lac.pucrio.luizpitta.iotrade.Activities.ResultActivity;
 import com.lac.pucrio.luizpitta.iotrade.Adapters.ServiceIoTAdapter;
 import com.lac.pucrio.luizpitta.iotrade.Models.AnalyticsPrice;
+import com.lac.pucrio.luizpitta.iotrade.Models.AnalyticsPriceWrapper;
 import com.lac.pucrio.luizpitta.iotrade.Models.ConnectPrice;
+import com.lac.pucrio.luizpitta.iotrade.Models.ConnectPriceWrapper;
 import com.lac.pucrio.luizpitta.iotrade.Models.ObjectServer;
 import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
+import com.lac.pucrio.luizpitta.iotrade.Models.SensorPriceWrapper;
 import com.lac.pucrio.luizpitta.iotrade.Models.ServiceIoT;
+import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
+import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
+import com.lac.pucrio.luizpitta.iotrade.Models.locals.MessageData;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
+import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
@@ -71,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * Componentes de interface
      */
-    private TextView optionsButton, configButton;
+    private TextView optionsButton, configButton, onButton;
     private EasyRecyclerView recyclerView;
     private SearchView searchView;
     private ServiceIoTAdapter adapter;
@@ -88,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private double lat = -22.92484013, lng = -43.25909615;
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
     private long currentTime, currentTimeAfter, diff;
+    private String selectedCategory = "";
 
     /**
      * Listner que é chamado ao usuário digitar algum caractere no campo de busca
@@ -120,10 +133,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         searchView = (SearchView) findViewById(R.id.searchSelectionView);
         optionsButton = (TextView) findViewById(R.id.optionsButton);
         configButton = (TextView) findViewById(R.id.configButton);
+        onButton = (TextView) findViewById(R.id.onButton);
         recyclerView = (EasyRecyclerView) findViewById(R.id.recycler_view);
 
         configButton.setOnClickListener(this);
         optionsButton.setOnClickListener(this);
+        onButton.setOnClickListener(this);
 
         //search bar
         searchView.setIconifiedByDefault(false);
@@ -147,14 +162,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View v, int position) {
+                SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
                 ObjectServer filter = new ObjectServer();
 
-                filter.setLat(lat);
-                filter.setLng(lng);
+                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
+                if(latFixed == -500.0) {
+                    filter.setLat(lat);
+                    filter.setLng(lng);
+                }else {
+                    filter.setLat(latFixed);
+                    filter.setLng(lngFixed);
+                }
+                filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
 
                 filter.setService(adapter.getItem(position));
 
-                createDialogAnalytics(filter);
+                selectedCategory = adapter.getItem(position);
+
+                if(!selectedCategory.contains("Atuar"))
+                    createDialogAnalytics(filter);
+                else
+                    getSensorChosen(filter);
             }
         });
 
@@ -164,14 +194,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     PERMISSION_ACCESS_COARSE_LOCATION);
         }
 
-        recyclerView.showProgress();
+        Intent iConn = new Intent(this, ConnectionService.class);
 
-        Intent iConn = new Intent( this, ConnectionService.class );
+        if (AppUtils.isMyServiceRunning(this, ConnectionService.class.getName()))
+            stopService(iConn);
 
-        if( AppUtils.isMyServiceRunning( this, ConnectionService.class.getName() ) )
-            stopService( iConn );
-
-        startService( iConn );
+        recyclerView.showRecycler();
 
         EventBus.getDefault().register( this );
     }
@@ -188,9 +216,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
+                SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+
+                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
                 ServiceIoT serviceIoT = new ServiceIoT();
-                serviceIoT.setLat(lat);
-                serviceIoT.setLng(lng);
+
+                if(latFixed == -500.0) {
+                    serviceIoT.setLat(lat);
+                    serviceIoT.setLng(lng);
+                }else {
+                    serviceIoT.setLat(latFixed);
+                    serviceIoT.setLng(lngFixed);
+                }
+
+                serviceIoT.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
 
                 getServices(serviceIoT);
             }
@@ -278,6 +319,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(new Intent(MainActivity.this, MenuActivity.class));
         }else if(view == optionsButton){
             startActivity(new Intent(MainActivity.this, OptionsActivity.class));
+        }else if(view == onButton){
+            String text = onButton.getText().toString();
+            Intent iConn = new Intent(this, ConnectionService.class);
+            if(text.equals("ON")) {
+                onButton.setText(getResources().getString(R.string.off));
+                if (AppUtils.isMyServiceRunning(this, ConnectionService.class.getName()))
+                    stopService(iConn);
+
+                startService(iConn);
+            }else if(text.equals("OFF")) {
+                onButton.setText(getResources().getString(R.string.on));
+                stopService(iConn);
+            }
+
         }
     }
 
@@ -380,7 +435,53 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithmAnalytics(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(this::handleSensorChosen,this::handleError));
+                .subscribe(this::handleSensorChosenAnalytics,this::handleError));
+    }
+
+    /**
+     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     *
+     *
+     * @param response Objeto com o conjunto de serviços escolhidos.
+     */
+    private void handleSensorChosenAnalytics(Response response) {
+        currentTimeAfter = Calendar.getInstance().getTimeInMillis();
+        diff = currentTimeAfter-currentTime;
+        Log.d("Tempo Matchmaking (Ms)", String.valueOf(diff) + "ms");
+
+        SensorPrice sensorPrice = response.getSensor();
+
+        if( AppUtils.getUuid( this ) == null )
+            AppUtils.createSaveUuid( this );
+
+        if(sensorPrice != null) {
+            Intent intent;
+
+            MatchmakingData msg = new MatchmakingData();
+            msg.setUuidClient(response.getAnalytics().getUuid());
+            msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(response.getConnect().getUuid());
+            msg.setMacAddress(response.getSensor().getMacAdress());
+            msg.setUuidData(response.getSensor().getUuidData());
+            msg.setStartStop(MatchmakingData.START);
+
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
+
+            EventBus.getDefault().post(msg);
+
+            intent = new Intent(this, AnalyticsActivity.class);
+
+            intent.putExtra("category", selectedCategory);
+            intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
+            intent.putExtra("connect_price", new ConnectPriceWrapper(response.getConnect()));
+            intent.putExtra("analytics_price", new AnalyticsPriceWrapper(response.getAnalytics()));
+            startActivity(intent);
+        }
+        else
+            Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
+
+        recyclerView.showRecycler();
     }
 
     /**
@@ -393,34 +494,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         currentTimeAfter = Calendar.getInstance().getTimeInMillis();
         diff = currentTimeAfter-currentTime;
         Log.d("Tempo Matchmaking (Ms)", String.valueOf(diff) + "ms");
+
         SensorPrice sensorPrice = response.getSensor();
-        if(sensorPrice != null)
-            createDialogRating(response.getSensor(), response.getConnect(), response.getAnalytics());
+
+        if( AppUtils.getUuid( this ) == null )
+            AppUtils.createSaveUuid( this );
+
+        if(sensorPrice != null) {
+            Intent intent;
+
+            if(!response.getSensor().isActuator()) {
+                MatchmakingData msg = new MatchmakingData();
+                msg.setUuidClient(AppUtils.getUuid(this).toString());
+                msg.setUuidMatch(response.getConnect().getUuid());
+                msg.setMacAddress(response.getSensor().getMacAdress());
+                msg.setUuidData(response.getSensor().getUuidData());
+                msg.setStartStop(MatchmakingData.START);
+
+                msg.setRoute(ConnectionService.ROUTE_TAG);
+                msg.setPriority(LocalMessage.HIGH);
+
+                EventBus.getDefault().post(msg);
+
+                intent = new Intent(this, ResultActivity.class);
+            }
+            else
+                intent = new Intent(this, ActuatorActivity.class);
+
+            intent.putExtra("category", selectedCategory);
+            intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
+            intent.putExtra("connect_price", new ConnectPriceWrapper(response.getConnect()));
+            intent.putExtra("analytics_price", new AnalyticsPriceWrapper(response.getAnalytics()));
+            startActivity(intent);
+        }
         else
             Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
+
         recyclerView.showRecycler();
-    }
-
-    /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
-     *
-     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void updateSensorInformation(Response response) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseUpdate,this::handleError));
-    }
-
-    /**
-     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
-     *
-     *
-     * @param response Retorna mensagem que rodou corretamente.
-     */
-    private void handleResponseUpdate(Response response) {
-        Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -486,78 +596,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dialog.show();
     }
 
-    /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
-     * ao escolher uma categoria
-     *
-     * @param sensorPrice Objeto com as informações do Sensor.
-     * @param connectPrice Objeto com as informações do serviço de Analytics.
-     * @param analyticsPrice Objeto com as informações do serviço de Analytics.
-     */
-    private void createDialogRating(SensorPrice sensorPrice, ConnectPrice connectPrice, AnalyticsPrice analyticsPrice) {
-        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View customView = inflater.inflate(R.layout.dialog_rating, null);
-        double total_price;
-
-
-        SmileRating mSmileRating = (SmileRating) customView.findViewById(R.id.ratingView);
-        TextView sensorChosen = (TextView) customView.findViewById(R.id.sensorChosen);
-
-        mSmileRating.setNameForSmile(BaseRating.TERRIBLE, "1");
-        mSmileRating.setNameForSmile(BaseRating.BAD, "2");
-        mSmileRating.setNameForSmile(BaseRating.OKAY, "3");
-        mSmileRating.setNameForSmile(BaseRating.GOOD, "4");
-        mSmileRating.setNameForSmile(BaseRating.GREAT, "5");
-
-        if(analyticsPrice == null) {
-            total_price = sensorPrice.getPrice() + connectPrice.getPrice();
-            sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\n" +
-                    "Nota: " + sensorPrice.getRank() + "\n\n" +
-                    "Mobile Hub: " + connectPrice.getTitle() + "\n" +
-                    "Nota: " + connectPrice.getRank() + "\n\n" +
-                    "Custo total: R$" + total_price);
-        }
-        else {
-            total_price = sensorPrice.getPrice() + connectPrice.getPrice() + analyticsPrice.getPrice();
-            sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\n" +
-                    "Nota: " + sensorPrice.getRank() + "\n\n" +
-                    "Mobile Hub: " + connectPrice.getTitle() + "\n" +
-                    "Nota: " + connectPrice.getRank() + "\n\n" +
-                    "Analytics: " + analyticsPrice.getTitle() + "\n" +
-                    "Nota: " + analyticsPrice.getRank() + "\n\n" +
-                    "Custo total: R$" + total_price);
-        }
-
-        mSmileRating.setSelectedSmile(BaseRating.GREAT);
-
-        Dialog dialog = new Dialog(this, R.style.NewDialog);
-
-        mSmileRating.setOnRatingSelectedListener(new SmileRating.OnRatingSelectedListener() {
-            @Override
-            public void onRatingSelected(int level, boolean reselected) {
-                Response response;
-                sensorPrice.setRank(level);
-                connectPrice.setRank(level);
-                if(analyticsPrice != null) {
-                    analyticsPrice.setRank(level);
-                    response = new Response(sensorPrice, connectPrice, analyticsPrice);
-                }else
-                    response = new Response(sensorPrice, connectPrice, null);
-                updateSensorInformation(response);
-                dialog.dismiss();
-            }
-        });
-
-        dialog.setContentView(customView);
-        dialog.setCanceledOnTouchOutside(true);
-
-        dialog.show();
-    }
-
     @SuppressWarnings("unused")
     @Subscribe()
     public void onEventMainThread( SensorPrice sensorPrice ) {
-        Toast.makeText(this, "Passei", Toast.LENGTH_LONG).show();
+
     }
 
     /**
@@ -594,15 +636,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 lat = lastLocation.getLatitude();
                 lng = lastLocation.getLongitude();
 
+                SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+
                 ServiceIoT serviceIoT = new ServiceIoT();
-                serviceIoT.setLat(lat);
-                serviceIoT.setLng(lng);
+
+                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
+                if(latFixed == -500.0) {
+                    serviceIoT.setLat(lat);
+                    serviceIoT.setLng(lng);
+                }else {
+                    serviceIoT.setLat(latFixed);
+                    serviceIoT.setLng(lngFixed);
+                }
+                serviceIoT.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
 
                 getServices(serviceIoT);
 
                 locationRequest = LocationRequest.create();
                 locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-                locationRequest.setInterval(5000); //TODO mudar no app final
+                locationRequest.setInterval(2000); //TODO mudar no app final
                 LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
             }
         }

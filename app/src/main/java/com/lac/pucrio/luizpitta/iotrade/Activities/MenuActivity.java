@@ -1,6 +1,8 @@
 package com.lac.pucrio.luizpitta.iotrade.Activities;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -8,11 +10,16 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
 import com.lac.pucrio.luizpitta.iotrade.R;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
+import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -33,8 +40,13 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * Componentes de interface
      */
-    private EditText value;
-    private TextView confirmationButton;
+    private EditText value, radius;
+    private TextView confirmationButton, locationText, cleanText;
+
+    private static final int PLACE_PICKER_REQUEST = 1020;
+    private PlacePicker.IntentBuilder builder = null;
+    private Intent placePicker = null;
+    private Double lat = -500.0, lng = -500.0;
 
     /**
      * Variáveis
@@ -51,14 +63,27 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
 
         value = (EditText) findViewById(R.id.value);
         confirmationButton = (TextView) findViewById(R.id.confirmationButton);
+        locationText = (TextView) findViewById(R.id.locationText);
+        cleanText = (TextView) findViewById(R.id.cleanText);
+        radius = findViewById(R.id.radius);
 
         mSubscriptions = new CompositeSubscription();
 
         confirmationButton.setOnClickListener(this);
+        locationText.setOnClickListener(this);
+        cleanText.setOnClickListener(this);
 
         EventBus.getDefault().register( this );
 
         getUserInformation();
+
+        builder = new PlacePicker.IntentBuilder();
+
+        try {
+            placePicker = builder.build(this);
+        } catch (Exception e) {
+
+        }
     }
 
     /**
@@ -89,7 +114,46 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
             SensorPrice sensorPrice = new SensorPrice();
             sensorPrice.setPrice(Double.valueOf(value.getText().toString()));
             updateUserBudget(sensorPrice);
-            //EventBus.getDefault().post( sensorPrice );
+
+            SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+            editor.putString("latitude", String.valueOf(lat));
+            editor.putString("longitude", String.valueOf(lng));
+            editor.putString("location", locationText.getText().toString());
+            editor.putFloat("radius", Float.valueOf(radius.getText().toString())/1000.0f);
+            editor.putFloat("price_target", Float.valueOf(value.getText().toString()));
+            editor.apply();
+
+        }else if (view == locationText) {
+            startActivityForResult(placePicker, PLACE_PICKER_REQUEST);
+        }else if (view == cleanText) {
+            locationText.setText(null);
+
+            SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+            editor.putString("latitude", null);
+            editor.putString("longitude", null);
+            editor.putString("location", null);
+            lat = -500.0;
+            lng = -500.0;
+            editor.apply();
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PLACE_PICKER_REQUEST) {
+            if (resultCode == Activity.RESULT_OK) {
+                Place selectedPlace = PlacePicker.getPlace(MenuActivity.this, data);
+                String name = selectedPlace.getAddress().toString();
+                locationText.setText(name);
+                lat = selectedPlace.getLatLng().latitude;
+                lng = selectedPlace.getLatLng().longitude;
+            }
         }
     }
 
@@ -145,7 +209,26 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
      * @param response Objeto com o usuário retornado pelo servidor.
      */
     private void handleResponse(Response response) {
+
         value.setText(String.valueOf(response.getUser().getBudget()));
+
+        SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+
+        SharedPreferences.Editor editor = mSharedPreferences.edit();
+        editor.putFloat("price_target", Float.valueOf(value.getText().toString()));
+        editor.apply();
+
+        String location = mSharedPreferences.getString("location", "");
+
+        if(!location.equals(""))
+            locationText.setText(location);
+        else
+            locationText.setText(null);
+
+        radius.setText(String.valueOf(mSharedPreferences.getFloat("radius", 1.5f)));
+
+
+
         setProgress(false);
     }
 
