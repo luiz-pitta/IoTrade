@@ -5,10 +5,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.JsonReader;
+import android.util.JsonToken;
 import android.view.View;
 import android.widget.TextView;
 
 import com.infopae.model.SendSensorData;
+import com.lac.pucrio.luizpitta.iotrade.Models.locals.EventData;
 import com.lac.pucrio.luizpitta.iotrade.R;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
@@ -16,8 +19,12 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import rx.subscriptions.CompositeSubscription;
 
@@ -59,7 +66,11 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
 
         mSubscriptions = new CompositeSubscription();
 
-        title.setText(getIntent().getStringExtra("title_analytics"));
+        double value = getIntent().getDoubleExtra("value_analytics", -50000.0);
+        if(value == -50000.0)
+            title.setText(getIntent().getStringExtra("title_analytics"));
+        else
+            title.setText(getIntent().getStringExtra("title_analytics") + " > " + value);
 
         EventBus.getDefault().register( this );
     }
@@ -102,6 +113,46 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
 
             data += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
             dataText.setText(data);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    @SuppressWarnings("unused")
+    public void onEvent( EventData eventData ) {
+        if( eventData != null ) {
+
+            // Event description
+            Map<String, Object> payload = new HashMap<>();
+            // Event data
+            final String label = eventData.getLabel();
+            final String data = eventData.getData();
+            JsonReader reader = new JsonReader( new StringReader( data ) );
+
+            try {
+                reader.beginObject();
+                while( reader.hasNext() ) {
+                    final String name  = reader.nextName();
+                    final JsonToken token = reader.peek();
+                    Object value = null;
+
+                    if( token.equals( JsonToken.STRING ) )
+                        value = reader.nextString();
+                    else if( token.equals( JsonToken.NUMBER ) )
+                        value = reader.nextDouble();
+
+                    payload.put( name, value );
+                }
+                reader.endObject();
+
+            } catch( IOException e ) {
+                e.printStackTrace();
+            }
+
+
+            String text = dataText.getText().toString() + getString(R.string.alert) + "\n";
+            text += data + "\n";
+            text += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
+            dataText.setText(text);
         }
     }
 

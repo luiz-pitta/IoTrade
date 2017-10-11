@@ -439,7 +439,7 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
                     "Nota: " + sensorPrice.getRank() + "\n\n" +
                     "Mobile Hub: " + connectPrice.getTitle() + "\n" +
                     "Nota: " + connectPrice.getRank() + "\n\n" +
-                    "Analytics: " + analyticsPrice.getTitle() + "\n" +
+                    "Analytics: " + analyticsPrice.getDevice() + "\n" +
                     "Nota: " + analyticsPrice.getRank() + "\n\n" +
                     "Custo total: R$" + formatPrice);
         }

@@ -2,8 +2,12 @@ package com.lac.pucrio.luizpitta.iotrade.Services.Listeners;
 
 import android.content.Context;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.lac.pucrio.luizpitta.iotrade.Managers.LocalRouteManager;
 import com.lac.pucrio.luizpitta.iotrade.Models.ConnectionData;
+import com.lac.pucrio.luizpitta.iotrade.Models.locals.EventData;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -88,11 +92,17 @@ public class ConnectionListener implements NodeConnectionListener {
 	@Override
 	public void newMessageReceived( NodeConnection nc, Message m ) {
 		AppUtils.logger( 'i', TAG, "NewMessageReceived..." );
+		JsonParser parser = new JsonParser();
+		Gson gson = new Gson();
 
 		if( m.getContentObject() instanceof String) {
-			String str = m.getContentObject().toString();
-			//AppUtils.logger( 'i', TAG, str );
-            //cm.routeMessage( str );
+			String content = new String( m.getContent() );
+			try {
+				JsonElement object = parser.parse(content);
+				EventData eventData = gson.fromJson(object, EventData.class);
+				EventBus.getDefault().post( eventData );
+			}catch (Exception ex){
+			}
 		}else if(m.getContentObject() instanceof SendSensorData) {
 			SendSensorData sendSensorData = (SendSensorData)m.getContentObject();
 			EventBus.getDefault().post( sendSensorData );

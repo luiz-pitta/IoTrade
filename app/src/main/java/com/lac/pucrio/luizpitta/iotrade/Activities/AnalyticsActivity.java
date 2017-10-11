@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,6 +48,7 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -136,26 +138,32 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View v, int position) {
-                Intent intent;
-                BuyAnalyticsData buyAnalyticsData = new BuyAnalyticsData();
-                buyAnalyticsData.setMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
-                buyAnalyticsData.setUuidData(sensorPriceWrapper.getSensorPrice().getUuidData());
-                buyAnalyticsData.setOption(position);
-                buyAnalyticsData.setUuidIotrade(AppUtils.getUuid(AnalyticsActivity.this).toString());
-                buyAnalyticsData.setUuidAnalyticsHub(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
 
-                EventBus.getDefault().post(buyAnalyticsData);
 
-                totalPrice += adapter.getItem(position).getPrice();
+                if(position == 1)
+                    createDialogAlert();
+                else {
+                    Intent intent;
+                    BuyAnalyticsData buyAnalyticsData = new BuyAnalyticsData();
+                    buyAnalyticsData.setMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
+                    buyAnalyticsData.setUuidData(sensorPriceWrapper.getSensorPrice().getUuidData());
+                    buyAnalyticsData.setOption(position);
+                    buyAnalyticsData.setUuidIotrade(AppUtils.getUuid(AnalyticsActivity.this).toString());
+                    buyAnalyticsData.setUuidAnalyticsHub(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
 
-                if(position > 0)
-                    intent = new Intent(AnalyticsActivity.this, AnalyticsOptionActivity.class);
-                else
-                    intent = new Intent(AnalyticsActivity.this, AnalyticsChartActivity.class);
+                    EventBus.getDefault().post(buyAnalyticsData);
 
-                intent.putExtra("title_analytics", adapter.getItem(position).getTitle());
+                    totalPrice += adapter.getItem(position).getPrice();
 
-                startActivityForResult(intent, 133);
+                    if (position > 1)
+                        intent = new Intent(AnalyticsActivity.this, AnalyticsOptionActivity.class);
+                    else
+                        intent = new Intent(AnalyticsActivity.this, AnalyticsChartActivity.class);
+
+                    intent.putExtra("title_analytics", adapter.getItem(position).getTitle());
+
+                    startActivityForResult(intent, 133);
+                }
             }
         });
 
@@ -176,32 +184,36 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         super.onActivityResult(requestCode,resultCode,data);
         if (requestCode == 133) {
             if(resultCode == RESULT_OK){
-                keepRunning = false;
-
-                MatchmakingData msg = new MatchmakingData();
-                SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-                msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
-                msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
-                msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-                msg.setMacAddress(sensorPrice.getMacAdress());
-                msg.setUuidData(sensorPrice.getUuidData());
-                msg.setStartStop(MatchmakingData.STOP);
-
-                msg.setRoute(ConnectionService.ROUTE_TAG);
-                msg.setPriority(LocalMessage.HIGH);
-
-                EventBus.getDefault().post(msg);
-
-                adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(View v, int position) {
-                        Toast.makeText(AnalyticsActivity.this, getString(R.string.analytics_stop_try_again), Toast.LENGTH_LONG).show();
-                    }
-                });
-
-                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
+                stopAnalyticsService();
             }
         }
+    }
+
+    private void stopAnalyticsService(){
+        keepRunning = false;
+
+        MatchmakingData msg = new MatchmakingData();
+        SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+        msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
+        msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
+        msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+        msg.setMacAddress(sensorPrice.getMacAdress());
+        msg.setUuidData(sensorPrice.getUuidData());
+        msg.setStartStop(MatchmakingData.STOP);
+
+        msg.setRoute(ConnectionService.ROUTE_TAG);
+        msg.setPriority(LocalMessage.HIGH);
+
+        EventBus.getDefault().post(msg);
+
+        adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View v, int position) {
+                Toast.makeText(AnalyticsActivity.this, getString(R.string.analytics_stop_try_again), Toast.LENGTH_LONG).show();
+            }
+        });
+
+        createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
     }
 
     private void runThreadTimeElapsed() {
@@ -298,25 +310,8 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     @Override
     public void onClick(View view) {
         if(view == stopButton) {
-
             if(stopButton.getText().toString().equals(getString(R.string.stop))) {
-                keepRunning = false;
-
-                MatchmakingData msg = new MatchmakingData();
-                SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-                msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
-                msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
-                msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-                msg.setMacAddress(sensorPrice.getMacAdress());
-                msg.setUuidData(sensorPrice.getUuidData());
-                msg.setStartStop(MatchmakingData.STOP);
-
-                msg.setRoute(ConnectionService.ROUTE_TAG);
-                msg.setPriority(LocalMessage.HIGH);
-
-                EventBus.getDefault().post(msg);
-
-                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
+                stopAnalyticsService();
             }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
                 finish();
             }
@@ -442,7 +437,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
                     "Nota: " + sensorPrice.getRank() + "\n\n" +
                     "Mobile Hub: " + connectPrice.getTitle() + "\n" +
                     "Nota: " + connectPrice.getRank() + "\n\n" +
-                    "Analytics: " + analyticsPrice.getTitle() + "\n" +
+                    "Analytics: " + analyticsPrice.getDevice() + "\n" +
                     "Nota: " + analyticsPrice.getRank() + "\n\n" +
                     "Custo total: R$" + formatPrice);
         }
@@ -472,6 +467,69 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
 
         dialog.setContentView(customView);
         dialog.setCanceledOnTouchOutside(false);
+
+        dialog.show();
+    }
+
+    /**
+     * Metódo cria um diálogo pop-up para perguntar ao usuário qual valor que irá aparecer um alerta
+     */
+    private void createDialogAlert() {
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View customView = inflater.inflate(R.layout.dialog_message, null);
+
+        int position = 1;
+        EditText editText = customView.findViewById(R.id.editText);
+        TextView text1 = customView.findViewById(R.id.text1);
+        TextView buttonText1 = customView.findViewById(R.id.buttonText1);
+        TextView buttonText2 = customView.findViewById(R.id.buttonText2);
+
+        text1.setText(getString(R.string.value));
+        buttonText1.setText(getString(R.string.cancel));
+        buttonText2.setText(getString(R.string.ok));
+
+        customView.findViewById(R.id.text2).setVisibility(View.GONE);
+        customView.findViewById(R.id.editText2).setVisibility(View.GONE);
+
+        Dialog dialog = new Dialog(this, R.style.NewDialog);
+
+        dialog.setContentView(customView);
+        dialog.setCanceledOnTouchOutside(false);
+
+        buttonText1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        buttonText2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!editText.getText().toString().equals("")) {
+                    BuyAnalyticsData buyAnalyticsData = new BuyAnalyticsData();
+                    buyAnalyticsData.setMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
+                    buyAnalyticsData.setUuidData(sensorPriceWrapper.getSensorPrice().getUuidData());
+                    buyAnalyticsData.setOption(position);
+                    buyAnalyticsData.setValue(Double.valueOf(editText.getText().toString()));
+                    buyAnalyticsData.setUuidIotrade(AppUtils.getUuid(AnalyticsActivity.this).toString());
+                    buyAnalyticsData.setUuidAnalyticsHub(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
+
+                    EventBus.getDefault().post(buyAnalyticsData);
+
+                    totalPrice += adapter.getItem(position).getPrice();
+
+                    Intent intent = new Intent(AnalyticsActivity.this, AnalyticsOptionActivity.class);
+
+                    intent.putExtra("title_analytics", adapter.getItem(position).getTitle());
+                    intent.putExtra("value_analytics", Double.valueOf(editText.getText().toString()));
+
+                    startActivityForResult(intent, 133);
+
+                    dialog.dismiss();
+                }
+            }
+        });
 
         dialog.show();
     }

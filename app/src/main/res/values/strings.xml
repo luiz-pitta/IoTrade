@@ -8,6 +8,7 @@
     <string name="clean">Limpar</string>
     <string name="menu">Menu</string>
     <string name="data">Dados</string>
+    <string name="alert">Alerta!!</string>
     <string name="actuator">Atuação</string>
     <string name="analytics">Análise de Dados</string>
     <string name="unit">Unidade de Medida: </string>
@@ -32,6 +33,8 @@
     <string name="analytics_service_dialog_text">Deseja adicionar o serviço de Analytics?</string>
     <string name="actuator_stop_try_again">Você já parou o serviço de atuação!</string>
     <string name="analytics_stop_try_again">Você já parou o serviço de Análise de Dados!</string>
+    <string name="value">Valor</string>
+    <string name="ok">OK</string>
     <string name="yes">Sim</string>
     <string name="no">Não</string>
     <string name="no_sensors_available">Nenhum serviço na faixa de preço selecionada!</string>
