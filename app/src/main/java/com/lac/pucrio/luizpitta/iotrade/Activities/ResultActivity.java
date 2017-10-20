@@ -7,8 +7,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -17,6 +19,8 @@ import android.widget.Toast;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.hsalf.smilerating.BaseRating;
 import com.hsalf.smilerating.SmileRating;
 import com.infopae.model.SendSensorData;
@@ -24,9 +28,11 @@ import com.lac.pucrio.luizpitta.iotrade.Models.AnalyticsPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.AnalyticsPriceWrapper;
 import com.lac.pucrio.luizpitta.iotrade.Models.ConnectPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.ConnectPriceWrapper;
+import com.lac.pucrio.luizpitta.iotrade.Models.ObjectServer;
 import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPriceWrapper;
+import com.lac.pucrio.luizpitta.iotrade.Models.User;
 import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
@@ -40,9 +46,13 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.lang.reflect.Type;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import rx.android.schedulers.AndroidSchedulers;
@@ -70,9 +80,10 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     private ConnectPriceWrapper connectPriceWrapper;
     private AnalyticsPriceWrapper analyticsPriceWrapper;
     private double totalPrice = 0.0, timePassed = 0.0, priceTarget;
-    private long timeStart = 0;
-    private boolean keepRunning = true;
+    private long timeStart = 0, intervalDisconnection = 30;
+    private boolean keepRunning = true, keepCalculating = true, lostConnection = false;
     private Double currentPrice;
+    private long currentTime, currentTimeAfter, diff, lastTimeData;
 
     /**
      * Método do sistema Android, chamado ao criar a Activity
@@ -104,12 +115,34 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         currentPrice = connectPriceWrapper.getConnectPrice().getPrice();
 
         timeStart = System.currentTimeMillis();
+        lastTimeData = System.currentTimeMillis();
 
         runThread();
         runThreadTimeElapsed();
 
         SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
         priceTarget = mSharedPreferences.getFloat("price_target", 20.0f);
+    }
+
+    private void setMobileHubDisabled() {
+        User user = new User();
+        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
+        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
+        user.setActive(false);
+
+        registerLocation(user);
+    }
+
+    private void registerLocation(User usr) {
+
+        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseLostConnection,this::handleError));
+    }
+
+    private void handleResponseLostConnection(Response response) {
+        doMatchmaking();
     }
 
     private void runThreadTimeElapsed() {
@@ -131,10 +164,16 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
                                         TimeUnit.MILLISECONDS.toMinutes(millis),
                                         TimeUnit.MILLISECONDS.toSeconds(millis) -
                                                 TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
-                                );;
+                                );
 
 
                                 time.setText(timeElapsed);
+
+                                long lastTimeDiff = (System.currentTimeMillis() - lastTimeData)/1000;
+                                if(lastTimeDiff >= (intervalDisconnection*1.2) && !lostConnection) {
+                                    lostConnection = true;
+                                    setMobileHubDisabled();
+                                }
                             }
                         });
                         Thread.sleep(1000);
@@ -159,26 +198,28 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
                             public void run() {
                                 String formatPrice;
 
-                                double sensor = sensorPriceWrapper.getSensorPrice().getPrice();
-                                double analytics = analyticsPriceWrapper.getAnalyticsPrice() == null ? 0.0 : analyticsPriceWrapper.getAnalyticsPrice().getPrice();
-                                totalPrice += sensor + currentPrice + analytics;
-                                DecimalFormat df = new DecimalFormat("#.00");
+                                if(keepCalculating) {
+                                    double sensor = sensorPriceWrapper.getSensorPrice().getPrice();
+                                    double analytics = analyticsPriceWrapper.getAnalyticsPrice() == null ? 0.0 : analyticsPriceWrapper.getAnalyticsPrice().getPrice();
+                                    totalPrice += sensor + currentPrice + analytics;
+                                    DecimalFormat df = new DecimalFormat("#.00");
 
-                                if(totalPrice < 1)
-                                    formatPrice = "0" + df.format(totalPrice);
-                                else
-                                    formatPrice = df.format(totalPrice);
+                                    if (totalPrice < 1)
+                                        formatPrice = "0" + df.format(totalPrice);
+                                    else
+                                        formatPrice = df.format(totalPrice);
 
-                                totalText.setText(formatPrice);
+                                    totalText.setText(formatPrice);
 
-                                if(totalPrice >= 0.8*priceTarget && totalPrice < priceTarget)
-                                    totalText.setTextColor(ContextCompat.getColor(ResultActivity.this, R.color.yellow));
-                                else if(totalPrice >= priceTarget)
-                                    totalText.setTextColor(Color.RED);
+                                    if (totalPrice >= 0.8 * priceTarget && totalPrice < priceTarget)
+                                        totalText.setTextColor(ContextCompat.getColor(ResultActivity.this, R.color.yellow));
+                                    else if (totalPrice >= priceTarget)
+                                        totalText.setTextColor(Color.RED);
 
-                                ConnectPrice connectPrice = new ConnectPrice();
-                                connectPrice.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
-                                getConnectPrice(connectPrice);
+                                    ConnectPrice connectPrice = new ConnectPrice();
+                                    connectPrice.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
+                                    getConnectPrice(connectPrice);
+                                }
                             }
                         });
                         Thread.sleep(60000);
@@ -204,7 +245,7 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     @Subscribe(threadMode = ThreadMode.MAIN)
     @SuppressWarnings("unused")
     public void onEvent( SendSensorData sendSensorData ) {
-        if( sendSensorData != null ) {
+        if( sendSensorData != null && sendSensorData.getData() != null) {
             Double[] sensorData = sendSensorData.getData();
             String data = dataText.getText().toString() + getString(R.string.data) + "\n";
             data += Arrays.toString(sensorData) + "\n";
@@ -212,7 +253,110 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
             data += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
             dataText.setText(data);
 
+            lastTimeData = System.currentTimeMillis();
+            intervalDisconnection = sendSensorData.getInterval();
+
             AppUtils.logger( 'i', Arrays.toString(sendSensorData.getData()), "Connected and Identified..." );
+        }else if(sendSensorData != null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB){
+            keepCalculating = false;
+
+            MatchmakingData msg = new MatchmakingData();
+            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+            msg.setUuidClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+            msg.setMacAddress(sensorPrice.getMacAdress());
+            msg.setUuidData(sensorPrice.getUuidData());
+            msg.setStartStop(MatchmakingData.STOP);
+
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
+
+            EventBus.getDefault().post(msg);
+
+            doMatchmaking();
+        }
+    }
+
+    private void doMatchmaking(){
+        currentTime = Calendar.getInstance().getTimeInMillis();
+
+        SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+        ObjectServer filter = new ObjectServer();
+
+        Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+        Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
+        Double lat = Double.parseDouble(mSharedPreferences.getString("latitude_current", "-500.0"));
+        Double lng = Double.parseDouble(mSharedPreferences.getString("longitude_current", "-500.0"));
+
+        if(latFixed == -500.0) {
+            filter.setLat(lat);
+            filter.setLng(lng);
+        }else {
+            filter.setLat(latFixed);
+            filter.setLng(lngFixed);
+        }
+
+        filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
+        filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+
+        filter.setService(title.getText().toString());
+
+        getSensorChosen(filter);
+    }
+
+    /**
+     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking sem opção de analytics
+     *
+     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
+     */
+    private void getSensorChosen(ObjectServer objectServer) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithm(objectServer)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleSensorChosen,this::handleError));
+    }
+
+    /**
+     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     *
+     *
+     * @param response Objeto com o conjunto de serviços escolhidos.
+     */
+    private void handleSensorChosen(Response response) {
+        currentTimeAfter = Calendar.getInstance().getTimeInMillis();
+        diff = currentTimeAfter-currentTime;
+        Log.d("Tempo Matchmaking (Ms)", String.valueOf(diff) + "ms");
+
+        SensorPrice sensorPrice = response.getSensor();
+
+        if( AppUtils.getUuid( this ) == null )
+            AppUtils.createSaveUuid( this );
+
+        if(sensorPrice != null) {
+            keepCalculating = true;
+
+            MatchmakingData msg = new MatchmakingData();
+            msg.setUuidClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(response.getConnect().getUuid());
+            msg.setMacAddress(response.getSensor().getMacAdress());
+            msg.setUuidData(response.getSensor().getUuidData());
+            msg.setStartStop(MatchmakingData.START);
+
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
+
+            EventBus.getDefault().post(msg);
+
+            lostConnection = false;
+
+            sensorPriceWrapper = new SensorPriceWrapper(response.getSensor());
+            connectPriceWrapper = new ConnectPriceWrapper(response.getConnect());
+        }
+        else {
+            keepRunning = false;
+            createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), null);
+            Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -343,19 +487,48 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         totalText.setText(formatPrice);
 
         if(analyticsPrice == null) {
+            String sensorGrade, connectionGrade;
+
+            if (sensorPrice.getRank() < 1)
+                sensorGrade = "0" + df.format(sensorPrice.getRank());
+            else
+                sensorGrade = df.format(sensorPrice.getRank());
+
+            if (connectPrice.getRank() < 1)
+                connectionGrade = "0" + df.format(connectPrice.getRank());
+            else
+                connectionGrade = df.format(connectPrice.getRank());
+
             sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\n" +
-                    "Nota: " + sensorPrice.getRank() + "\n\n" +
+                    "Nota: " + sensorGrade + "\n\n" +
                     "Mobile Hub: " + connectPrice.getTitle() + "\n" +
-                    "Nota: " + connectPrice.getRank() + "\n\n" +
+                    "Nota: " + connectionGrade + "\n\n" +
                     "Custo total: R$" + formatPrice);
         }
         else {
+            String sensorGrade, connectionGrade, analyticsGrade;
+
+            if (sensorPrice.getRank() < 1)
+                sensorGrade = "0" + df.format(sensorPrice.getRank());
+            else
+                sensorGrade = df.format(sensorPrice.getRank());
+
+            if (connectPrice.getRank() < 1)
+                connectionGrade = "0" + df.format(connectPrice.getRank());
+            else
+                connectionGrade = df.format(connectPrice.getRank());
+
+            if (analyticsPrice.getRank() < 1)
+                analyticsGrade = "0" + df.format(analyticsPrice.getRank());
+            else
+                analyticsGrade = df.format(analyticsPrice.getRank());
+
             sensorChosen.setText("Sensor: " + sensorPrice.getTitle() + "\n" +
-                    "Nota: " + sensorPrice.getRank() + "\n\n" +
+                    "Nota: " + sensorGrade + "\n\n" +
                     "Mobile Hub: " + connectPrice.getTitle() + "\n" +
-                    "Nota: " + connectPrice.getRank() + "\n\n" +
+                    "Nota: " + connectionGrade + "\n\n" +
                     "Analytics: " + analyticsPrice.getDevice() + "\n" +
-                    "Nota: " + analyticsPrice.getRank() + "\n\n" +
+                    "Nota: " + analyticsGrade + "\n\n" +
                     "Custo total: R$" + formatPrice);
         }
 

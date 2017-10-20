@@ -48,6 +48,7 @@ import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPriceWrapper;
 import com.lac.pucrio.luizpitta.iotrade.Models.ServiceIoT;
+import com.lac.pucrio.luizpitta.iotrade.Models.User;
 import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MessageData;
@@ -60,9 +61,11 @@ import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.UUID;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -101,6 +104,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
     private long currentTime, currentTimeAfter, diff;
     private String selectedCategory = "";
+    private boolean ackConnection = false, ackAnalytics = false;
+    private boolean connectionDisabled = false, analyticsDisabled = false;
+    private final static long ACK_TIMEOUT = 750; // Seconds x Milliseconds
 
     /**
      * Listner que é chamado ao usuário digitar algum caractere no campo de busca
@@ -178,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
 
                 filter.setService(adapter.getItem(position));
+                filter.setConnectionDevice("");
 
                 selectedCategory = adapter.getItem(position);
 
@@ -235,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 getServices(serviceIoT);
             }
-        }, 1000);
+        }, 500);
 
     }
 
@@ -426,6 +433,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
+     * The method used to logout analytics user.
+     */
+    private void setAnalyticsHubDisabled(AnalyticsPrice analyticsPrice) {
+        User user = new User();
+        user.setUuid(UUID.fromString(analyticsPrice.getUuid()));
+        user.setDevice(analyticsPrice.getDevice());
+        user.setActive(false);
+
+        registerAnalytics(user);
+    }
+
+    /**
+     * The method used to register state in server of analytics user.
+     * @param usr The new location object.
+     */
+    private void registerAnalytics(User usr) {
+
+        mSubscriptions.add(NetworkUtil.getRetrofit().setAnalyticsMobileHub(usr)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseLostConnection,this::handleError));
+    }
+
+    private void setMobileHubDisabled(ConnectPrice connectPrice) {
+        User user = new User();
+        user.setUuid(UUID.fromString(connectPrice.getUuid()));
+        user.setDevice(connectPrice.getDevice());
+        user.setActive(false);
+
+        registerLocation(user);
+    }
+
+    private void registerLocation(User usr) {
+
+        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseLostConnection,this::handleError));
+    }
+
+    private void handleResponseLostConnection(Response response) {
+        ackConnection = false;
+        ackAnalytics = false;
+        analyticsDisabled = false;
+        connectionDisabled = false;
+    }
+
+    /**
      * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking com opção de analytics
      *
      * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
@@ -463,20 +518,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             msg.setUuidMatch(response.getConnect().getUuid());
             msg.setMacAddress(response.getSensor().getMacAdress());
             msg.setUuidData(response.getSensor().getUuidData());
+            msg.setAck(true);
             msg.setStartStop(MatchmakingData.START);
 
             msg.setRoute(ConnectionService.ROUTE_TAG);
             msg.setPriority(LocalMessage.HIGH);
 
             EventBus.getDefault().post(msg);
-
             intent = new Intent(this, AnalyticsActivity.class);
-
             intent.putExtra("category", selectedCategory);
             intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
             intent.putExtra("connect_price", new ConnectPriceWrapper(response.getConnect()));
             intent.putExtra("analytics_price", new AnalyticsPriceWrapper(response.getAnalytics()));
-            startActivity(intent);
+
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(ackAnalytics && ackConnection) {
+                        ackConnection = false;
+                        ackAnalytics = false;
+                        startActivity(intent);
+                    }
+                    else {
+                        Toast.makeText(MainActivity.this, getResources().getString(R.string.try_again), Toast.LENGTH_LONG).show();
+
+                        if(!ackAnalytics)
+                            setAnalyticsHubDisabled(response.getAnalytics());
+
+                        if(!ackConnection)
+                            setMobileHubDisabled(response.getConnect());
+                    }
+
+                }
+            }, ACK_TIMEOUT);
+
         }
         else
             Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
@@ -503,21 +578,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(sensorPrice != null) {
             Intent intent;
 
-            if(!response.getSensor().isActuator()) {
-                MatchmakingData msg = new MatchmakingData();
-                msg.setUuidClient(AppUtils.getUuid(this).toString());
-                msg.setUuidMatch(response.getConnect().getUuid());
-                msg.setMacAddress(response.getSensor().getMacAdress());
-                msg.setUuidData(response.getSensor().getUuidData());
-                msg.setStartStop(MatchmakingData.START);
+            MatchmakingData msg = new MatchmakingData();
+            msg.setUuidClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(response.getConnect().getUuid());
+            msg.setMacAddress(response.getSensor().getMacAdress());
+            msg.setUuidData(response.getSensor().getUuidData());
+            msg.setAck(true);
+            msg.setStartStop(MatchmakingData.START);
 
-                msg.setRoute(ConnectionService.ROUTE_TAG);
-                msg.setPriority(LocalMessage.HIGH);
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
 
-                EventBus.getDefault().post(msg);
+            EventBus.getDefault().post(msg);
 
+            if(!response.getSensor().isActuator())
                 intent = new Intent(this, ResultActivity.class);
-            }
             else
                 intent = new Intent(this, ActuatorActivity.class);
 
@@ -525,7 +600,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
             intent.putExtra("connect_price", new ConnectPriceWrapper(response.getConnect()));
             intent.putExtra("analytics_price", new AnalyticsPriceWrapper(response.getAnalytics()));
-            startActivity(intent);
+
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(ackConnection) {
+                        ackConnection = false;
+                        startActivity(intent);
+                    }
+                    else {
+                        Toast.makeText(MainActivity.this, getResources().getString(R.string.try_again), Toast.LENGTH_LONG).show();
+                        setMobileHubDisabled(response.getConnect());
+                    }
+
+
+                }
+            }, ACK_TIMEOUT);
         }
         else
             Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
@@ -596,10 +686,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dialog.show();
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
     @SuppressWarnings("unused")
-    @Subscribe()
-    public void onEventMainThread( SensorPrice sensorPrice ) {
-
+    public void onEvent( String string ) {
+        if(string != null){
+            switch (string){
+                case "a":
+                    ackAnalytics = true;
+                    break;
+                case "c":
+                    ackConnection = true;
+                    break;
+            }
+        }
     }
 
     /**
@@ -609,6 +708,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onLocationChanged(Location lastLocation) {
         lat = lastLocation.getLatitude();
         lng = lastLocation.getLongitude();
+
+        SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+        SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+        editor.putString("latitude_current", String.valueOf(lat));
+        editor.putString("longitude_current", String.valueOf(lng));
+        editor.apply();
     }
 
     /**
@@ -637,6 +743,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 lng = lastLocation.getLongitude();
 
                 SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+                SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+                editor.putString("latitude_current", String.valueOf(lat));
+                editor.putString("longitude_current", String.valueOf(lng));
+                editor.apply();
 
                 ServiceIoT serviceIoT = new ServiceIoT();
 

@@ -5,6 +5,7 @@ import com.lac.pucrio.luizpitta.iotrade.Models.ObjectServer;
 import com.lac.pucrio.luizpitta.iotrade.Models.Response;
 import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.Models.ServiceIoT;
+import com.lac.pucrio.luizpitta.iotrade.Models.User;
 
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -77,4 +78,16 @@ public interface RetrofitInterface {
      */
     @POST("get_sensor_matchmaking_analytics/")
     Observable<Response> getSensorAlgorithmAnalytics(@Body ObjectServer objectServer);
+
+    /**
+     * @return Retorna os serviços com analytics do algoritmo de matchmaking.
+     */
+    @POST("get_new_analytics/")
+    Observable<Response> getNewAnalytics(@Body ObjectServer objectServer);
+
+    @POST("register_location")
+    Observable<Response> setLocationMobileHub(@Body User user);
+
+    @POST("register_analytics")
+    Observable<Response> setAnalyticsMobileHub(@Body User user);
 }

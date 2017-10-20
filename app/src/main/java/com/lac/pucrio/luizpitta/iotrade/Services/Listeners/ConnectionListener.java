@@ -96,13 +96,18 @@ public class ConnectionListener implements NodeConnectionListener {
 		Gson gson = new Gson();
 
 		if( m.getContentObject() instanceof String) {
-			String content = new String( m.getContent() );
-			try {
-				JsonElement object = parser.parse(content);
-				EventData eventData = gson.fromJson(object, EventData.class);
-				EventBus.getDefault().post( eventData );
-			}catch (Exception ex){
-			}
+            String string = (String) m.getContentObject();
+            if(string.equals("c") || string.equals("a")){
+				EventBus.getDefault().post(string);
+            }else {
+                String content = new String(m.getContent());
+                try {
+                    JsonElement object = parser.parse(content);
+                    EventData eventData = gson.fromJson(object, EventData.class);
+                    EventBus.getDefault().post(eventData);
+                } catch (Exception ex) {
+                }
+            }
 		}else if(m.getContentObject() instanceof SendSensorData) {
 			SendSensorData sendSensorData = (SendSensorData)m.getContentObject();
 			EventBus.getDefault().post( sendSensorData );

@@ -1,8 +1,12 @@
 package com.lac.pucrio.luizpitta.iotrade.Activities;
 
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.JsonReader;
@@ -45,6 +49,12 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
      * Variáveis
      */
     private CompositeSubscription mSubscriptions;
+    private BroadcastReceiver mMessageReceiverFinish = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            finish();
+        }
+    };
 
     /**
      * Método do sistema Android, chamado ao criar a Activity
@@ -66,13 +76,15 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
 
         mSubscriptions = new CompositeSubscription();
 
-        double value = getIntent().getDoubleExtra("value_analytics", -50000.0);
-        if(value == -50000.0)
+        double value_analytics = getIntent().getDoubleExtra("value_analytics", -50000.0);
+        if(value_analytics == -50000.0)
             title.setText(getIntent().getStringExtra("title_analytics"));
         else
-            title.setText(getIntent().getStringExtra("title_analytics") + " > " + value);
+            title.setText(getIntent().getStringExtra("title_analytics") + " > " + value_analytics);
 
         EventBus.getDefault().register( this );
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiverFinish, new IntentFilter("finish_no_match"));
     }
 
     @Override //Finaliza a Activity
@@ -96,23 +108,24 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
     @Subscribe(threadMode = ThreadMode.MAIN)
     @SuppressWarnings("unused")
     public void onEvent( SendSensorData sendSensorData ) {
-        if( sendSensorData != null ) {
+        if( sendSensorData != null && (sendSensorData.getData() != null || sendSensorData.getListData() != null) ) {
             String data = "";
             Double[] sensorData = sendSensorData.getData();
             ArrayList<Double[]> listData = sendSensorData.getListData();
 
-            data = dataText.getText().toString() + getString(R.string.data) + "\n";
-            if(sensorData == null){
-                for(int i=0;i<listData.size();i++){
-                    Double[] d = listData.get(i);
-                    data += Arrays.toString(d) + "\n";
-                }
-            }else {
-                data += Arrays.toString(sensorData) + "\n";
-            }
+            if((sensorData != null || (listData != null && listData.size() > 0))) {
+                data = dataText.getText().toString() + getString(R.string.data) + "\n";
+                if (sensorData == null) {
+                    for (int i = 0; i < listData.size(); i++) {
+                        Double[] d = listData.get(i);
+                        data += Arrays.toString(d) + "\n";
+                    }
+                } else if(listData.size() > 0)
+                    data += Arrays.toString(sensorData) + "\n";
 
-            data += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
-            dataText.setText(data);
+                data += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
+                dataText.setText(data);
+            }
         }
     }
 

@@ -12,14 +12,15 @@ public class MatchmakingData extends LocalMessage {
     /** DEBUG */
     private static final String TAG = MatchmakingData.class.getSimpleName();
 
-
     /** Message Data */
     public static final int START = 0;
     public static final int STOP = 1;
+    public static final int MODIFY = 2;
 
     private String uuidMatch, uuidClient, uuidAnalyticsClient;
     private String macAddress, uuidData;
     private int startStop;
+    private boolean ack = false;
 
 
     public MatchmakingData() {
@@ -50,6 +51,10 @@ public class MatchmakingData extends LocalMessage {
     public int getStartStop() {
         return this.startStop;
     }
+
+    public boolean isAck() {
+        return this.ack;
+    }
     /** Getters */
 
     /** Setters */
@@ -76,6 +81,10 @@ public class MatchmakingData extends LocalMessage {
     public void setStartStop( int startStop ) {
         this.startStop = startStop;
     }
+
+    public void setAck( boolean ack ) {
+        this.ack = ack;
+    }
     /** Setters */
 
     @Override
@@ -93,6 +102,7 @@ public class MatchmakingData extends LocalMessage {
         data.put( MAC_ADDRESS, getMacAddress() );
         data.put( START_STOP, getStartStop() );
         data.put( UUID_ANALYTICS_CLIENT, getUuidAnalyticsClient() );
+        data.put( ACK, isAck() );
 
         // Parent
         data.put( FUNCTION,  getTag() );

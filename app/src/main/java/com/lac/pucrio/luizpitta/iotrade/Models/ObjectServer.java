@@ -10,43 +10,35 @@ public class ObjectServer {
     /**
      * Variáveis
      */
-    private String service;
+    private String service, connectionDevice, analyticsDevice, sensorMacAddress;
     private Double lat, lng;
     private Float radius;
 
-    /**
-     * Método que seta o nome do serviço
-     *
-     * @param service Nome do serviço
-     */
     public void setService(String service) {
         this.service = service;
     }
 
-    /**
-     * Método que seta a latitude baseado no GPS do smartphone
-     *
-     * @param radius latitude
-     */
     public void setRadius(Float radius) {
         this.radius = radius;
     }
 
-    /**
-     * Método que seta a latitude baseado no GPS do smartphone
-     *
-     * @param lat latitude
-     */
     public void setLat(Double lat) {
         this.lat = lat;
     }
 
-    /**
-     * Método que seta a longitude baseado no GPS do smartphone
-     *
-     * @param lng longitude
-     */
     public void setLng(Double lng) {
         this.lng = lng;
+    }
+
+    public void setConnectionDevice(String connectionDevice) {
+        this.connectionDevice = connectionDevice;
+    }
+
+    public void setAnalyticsDevice(String analyticsDevice) {
+        this.analyticsDevice = analyticsDevice;
+    }
+
+    public void setSensorMacAddress(String sensorMacAddress) {
+        this.sensorMacAddress = sensorMacAddress;
     }
 }

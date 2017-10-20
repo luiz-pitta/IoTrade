@@ -1,8 +1,12 @@
 package com.lac.pucrio.luizpitta.iotrade.Activities;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -72,6 +76,12 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
      * Variáveis
      */
     private CompositeSubscription mSubscriptions;
+    private BroadcastReceiver mMessageReceiverFinish = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            finish();
+        }
+    };
 
     /**
      * Método do sistema Android, chamado ao criar a Activity
@@ -99,6 +109,7 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
         title.setText(getIntent().getStringExtra("title_analytics"));
 
         EventBus.getDefault().register( this );
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiverFinish, new IntentFilter("finish_no_match"));
 
         // Disable viewport recalculations, see toggleCubic() method for more info.
         chart.setViewportCalculationEnabled(false);
@@ -206,7 +217,7 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
     @Subscribe(threadMode = ThreadMode.MAIN)
     @SuppressWarnings("unused")
     public void onEvent( SendSensorData sendSensorData ) {
-        if( sendSensorData != null ) {
+        if( sendSensorData != null && sendSensorData.getListData() != null ) {
             ArrayList<Double[]> listData = sendSensorData.getListData();
             findEdgesChart(listData);
             numberOfLines = listData.get(0).length;
