@@ -7,15 +7,18 @@ public class SendActuatorData implements Serializable {
 
     private static final long serialVersionUID = 21L;
 
-	private byte[] COMMAND;
+    /** Attributes */
+    private byte[] COMMAND;
     private String uuidData, uuidHub;
 
+    /** Constructor */
     public SendActuatorData() {
     }
 
-	public byte[] getCommand() {
-	    return this.COMMAND;
-	}
+    /** Getters */
+    public byte[] getCommand() {
+        return this.COMMAND;
+    }
 
     public String getUuidData() {
         return uuidData;
@@ -24,10 +27,13 @@ public class SendActuatorData implements Serializable {
     public String getUuidHub() {
         return uuidHub;
     }
-    
-	public void setCommand( byte[] COMMAND ) {
-	    this.COMMAND = COMMAND;
-	}
+    /** Getters */
+
+
+    /** Setters */
+    public void setCommand( byte[] COMMAND ) {
+        this.COMMAND = COMMAND;
+    }
 
     public void setUuidData(String uuidData) {
         this.uuidData = uuidData;
@@ -36,4 +42,5 @@ public class SendActuatorData implements Serializable {
     public void setUuidHub(String uuidHub) {
         this.uuidHub = uuidHub;
     }
+    /** Setters */
 }
