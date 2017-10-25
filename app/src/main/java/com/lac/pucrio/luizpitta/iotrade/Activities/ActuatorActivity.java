@@ -58,22 +58,19 @@ import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe Menu da aplicação, onde o usuário seleciona os parêmetros de sua conta na aplicação
- * que irão influenciar no algoritmo de marchmaking.
+ * Class that sends commands to connectivity provider and actuates on a device
  *
  * @author Luiz Guilherme Pitta
  */
 public class ActuatorActivity extends AppCompatActivity implements View.OnClickListener {
 
     /**
-     * Componentes de interface
+     * Interface Components
      */
     private TextView stopButton, totalText, title, time;
     private EasyRecyclerView recyclerView;
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private CompositeSubscription mSubscriptions;
     private SensorPriceWrapper sensorPriceWrapper;
     private ConnectPriceWrapper connectPriceWrapper;

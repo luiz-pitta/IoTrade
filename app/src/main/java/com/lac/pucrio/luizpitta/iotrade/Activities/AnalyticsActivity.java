@@ -65,22 +65,19 @@ import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe Menu da aplicação, onde o usuário seleciona os parêmetros de sua conta na aplicação
- * que irão influenciar no algoritmo de marchmaking.
+ * Class that receives the analyzed data from a analytics provider and displays to user
  *
  * @author Luiz Guilherme Pitta
  */
 public class AnalyticsActivity extends AppCompatActivity implements View.OnClickListener {
 
     /**
-     * Componentes de interface
+     * Interface Components
      */
     private TextView stopButton, totalText, title, time;
     private EasyRecyclerView recyclerView;
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private CompositeSubscription mSubscriptions;
     private SensorPriceWrapper sensorPriceWrapper;
     private ConnectPriceWrapper connectPriceWrapper;
