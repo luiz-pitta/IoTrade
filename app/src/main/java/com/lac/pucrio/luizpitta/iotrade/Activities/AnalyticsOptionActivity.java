@@ -33,21 +33,18 @@ import java.util.Map;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe Menu da aplicação, onde o usuário seleciona os parêmetros de sua conta na aplicação
- * que irão influenciar no algoritmo de marchmaking.
+ * Class that receives the data from analytics provider and displays in the smartphone screen
  *
  * @author Luiz Guilherme Pitta
  */
-public class AnalyticsOptionActivity extends AppCompatActivity implements View.OnClickListener {
+public class AnalyticsOptionActivity extends AppCompatActivity {
 
     /**
-     * Componentes de interface
+     * Interface Components
      */
     private TextView dataText, title;
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private CompositeSubscription mSubscriptions;
     private BroadcastReceiver mMessageReceiverFinish = new BroadcastReceiver() {
         @Override
@@ -56,9 +53,6 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
         }
     };
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,16 +81,13 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiverFinish, new IntentFilter("finish_no_match"));
     }
 
-    @Override //Finaliza a Activity
+    @Override
     public void onBackPressed() {
         Intent intent = new Intent();
         setResult(RESULT_OK, intent);
         finish();
     }
 
-    /**
-     * Método do sistema Android, chamado ao destruir a Activity
-     */
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -105,8 +96,13 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
         EventBus.getDefault().unregister( this );
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")      // it's actually used to receive events from the Connection Service
     public void onEvent( SendSensorData sendSensorData ) {
         if( sendSensorData != null && (sendSensorData.getData() != null || sendSensorData.getListData() != null) ) {
             String data = "";
@@ -130,7 +126,7 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")      // it's actually used to receive events from the Connection Service
     public void onEvent( EventData eventData ) {
         if( eventData != null ) {
 
@@ -167,34 +163,6 @@ public class AnalyticsOptionActivity extends AppCompatActivity implements View.O
             text += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
             dataText.setText(text);
         }
-    }
-
-    /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
-     */
-    @Override
-    public void onClick(View view) {
-
-    }
-
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    /**
-     * Se {@code true}, então habilita a barra de progresso
-     */
-    public void setProgress(boolean progress) {
-        if(progress)
-            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
-        else
-            findViewById(R.id.progressBox).setVisibility(View.GONE);
     }
 
 }

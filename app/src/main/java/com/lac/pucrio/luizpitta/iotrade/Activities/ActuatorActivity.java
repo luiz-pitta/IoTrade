@@ -86,9 +86,6 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
     private ArrayList<Boolean> activated = new ArrayList<Boolean>();
     private long currentTime, currentTimeAfter, diff, lastTimeData;
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -166,25 +163,64 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
 
     }
 
-    private void setMobileHubDisabled() {
-        User user = new User();
-        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
-        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
-        user.setActive(false);
+    @Override
+    public void onClick(View view) {
+        if(view == stopButton) {
 
-        registerLocation(user);
+            if(stopButton.getText().toString().equals(getString(R.string.stop))) {
+                keepRunning = false;
+
+                SensorPrice sensor = sensorPriceWrapper.getSensorPrice();
+                byte[] DO_ACTUATION = new byte[]{0x00};
+                SendActuatorData sendActuatorData = new SendActuatorData();
+                sendActuatorData.setCommand(DO_ACTUATION);
+                sendActuatorData.setUuidData(sensor.getUuidData());
+                sendActuatorData.setUuidHub(connectPriceWrapper.getConnectPrice().getUuid());
+                EventBus.getDefault().post(sendActuatorData);
+
+                adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(View v, int position) {
+                        Toast.makeText(ActuatorActivity.this, getString(R.string.actuator_stop_try_again), Toast.LENGTH_LONG).show();
+                    }
+                });
+
+                SensorPrice sensorPrice = new SensorPrice();
+                String category = title.getText().toString();
+
+                sensorPrice.setCategory(category);
+                sensorPrice.setMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
+
+                setActuatorState(sensorPrice);
+
+                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
+            }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
+                finish();
+            }
+        }
     }
 
-    private void registerLocation(User usr) {
-
-        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseLostConnection,this::handleError));
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
-    private void handleResponseLostConnection(Response response) {
-        doMatchmaking();
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSubscriptions.unsubscribe();
+
+        EventBus.getDefault().unregister( this );
+    }
+
+    /**
+     * Se {@code true}, então habilita a barra de progresso
+     */
+    public void setProgress(boolean progress) {
+        if(progress)
+            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
+        else
+            findViewById(R.id.progressBox).setVisibility(View.GONE);
     }
 
     private void runThreadTimeElapsed() {
@@ -273,42 +309,21 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
         }.start();
     }
 
-    /**
-     * Método do sistema Android, chamado ao destruir a Activity
-     */
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mSubscriptions.unsubscribe();
+    private void setMobileHubDisabled() {
+        User user = new User();
+        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
+        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
+        user.setActive(false);
 
-        EventBus.getDefault().unregister( this );
+        registerLocation(user);
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
-    public void onEvent( SendSensorData sendSensorData ) {
-        if( sendSensorData != null && sendSensorData.getData() == null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB) {
-            keepCalculating = false;
+    private void registerLocation(User usr) {
 
-            MatchmakingData msg = new MatchmakingData();
-            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-            msg.setUuidClient(AppUtils.getUuid(this).toString());
-            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-            msg.setMacAddress(sensorPrice.getMacAdress());
-            msg.setUuidData(sensorPrice.getUuidData());
-            msg.setStartStop(MatchmakingData.STOP);
-
-            msg.setRoute(ConnectionService.ROUTE_TAG);
-            msg.setPriority(LocalMessage.HIGH);
-
-            EventBus.getDefault().post(msg);
-
-            doMatchmaking();
-        }else if(sendSensorData != null && sendSensorData.getData() != null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB){
-            //Do matchmaking
-            lastTimeData = System.currentTimeMillis();
-            intervalDisconnection = sendSensorData.getInterval();
-        }
+        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
     private void doMatchmaking(){
@@ -351,6 +366,42 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosen,this::handleError));
+    }
+
+    /**
+     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
+     *
+     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
+     */
+    private void updateSensorInformation(Response response) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseUpdate,this::handleError));
+    }
+
+    /**
+     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
+     *
+     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     */
+    private void getConnectPrice(ConnectPrice connectPrice) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponse,this::handleError));
+    }
+
+    /**
+     * Metódo que irá fazer a requisição ao servidor para atualizar o sensor
+     *
+     * @param sensorPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     */
+    private void setActuatorState(SensorPrice sensorPrice) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().setActuatorState(sensorPrice)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseActuatorState,this::handleError));
     }
 
     /**
@@ -412,80 +463,6 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
     }
 
     /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
-     */
-    @Override
-    public void onClick(View view) {
-        if(view == stopButton) {
-
-            if(stopButton.getText().toString().equals(getString(R.string.stop))) {
-                keepRunning = false;
-
-                SensorPrice sensor = sensorPriceWrapper.getSensorPrice();
-                byte[] DO_ACTUATION = new byte[]{0x00};
-                SendActuatorData sendActuatorData = new SendActuatorData();
-                sendActuatorData.setCommand(DO_ACTUATION);
-                sendActuatorData.setUuidData(sensor.getUuidData());
-                sendActuatorData.setUuidHub(connectPriceWrapper.getConnectPrice().getUuid());
-                EventBus.getDefault().post(sendActuatorData);
-
-                adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(View v, int position) {
-                        Toast.makeText(ActuatorActivity.this, getString(R.string.actuator_stop_try_again), Toast.LENGTH_LONG).show();
-                    }
-                });
-
-                SensorPrice sensorPrice = new SensorPrice();
-                String category = title.getText().toString();
-
-                sensorPrice.setCategory(category);
-                sensorPrice.setMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
-
-                setActuatorState(sensorPrice);
-
-                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
-            }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
-                finish();
-            }
-        }
-    }
-
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
-     *
-     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void getConnectPrice(ConnectPrice connectPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponse,this::handleError));
-    }
-
-    /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar o sensor
-     *
-     * @param sensorPrice Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void setActuatorState(SensorPrice sensorPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().setActuatorState(sensorPrice)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseActuatorState,this::handleError));
-    }
-
-    /**
      * Metódo que recebe a resposta do servidor com as informações atualizadas
      *
      *
@@ -507,18 +484,6 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
-     *
-     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void updateSensorInformation(Response response) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseUpdate,this::handleError));
-    }
-
-    /**
      * Metódo que recebe a resposta do servidor se tudo rodou corretamente
      *
      *
@@ -526,6 +491,10 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
      */
     private void handleResponseUpdate(Response response) {
         Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
+    }
+
+    private void handleResponseLostConnection(Response response) {
+        doMatchmaking();
     }
 
     /**
@@ -538,17 +507,6 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
         setProgress(false);
         Toast.makeText(this, getResources().getString(R.string.network_error), Toast.LENGTH_LONG).show();
     }
-
-    /**
-     * Se {@code true}, então habilita a barra de progresso
-     */
-    public void setProgress(boolean progress) {
-        if(progress)
-            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
-        else
-            findViewById(R.id.progressBox).setVisibility(View.GONE);
-    }
-
 
     /**
      * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
@@ -654,5 +612,32 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
         dialog.setCanceledOnTouchOutside(false);
 
         dialog.show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    @SuppressWarnings("unused")
+    public void onEvent( SendSensorData sendSensorData ) {
+        if( sendSensorData != null && sendSensorData.getData() == null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB) {
+            keepCalculating = false;
+
+            MatchmakingData msg = new MatchmakingData();
+            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+            msg.setUuidClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+            msg.setMacAddress(sensorPrice.getMacAdress());
+            msg.setUuidData(sensorPrice.getUuidData());
+            msg.setStartStop(MatchmakingData.STOP);
+
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
+
+            EventBus.getDefault().post(msg);
+
+            doMatchmaking();
+        }else if(sendSensorData != null && sendSensorData.getData() != null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB){
+            //Do matchmaking
+            lastTimeData = System.currentTimeMillis();
+            intervalDisconnection = sendSensorData.getInterval();
+        }
     }
 }

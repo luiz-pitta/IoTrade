@@ -30,15 +30,15 @@ import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe Menu da aplicação, onde o usuário seleciona os parêmetros de sua conta na aplicação
- * que irão influenciar no algoritmo de marchmaking.
+ * Class Application menu, where the user selects the parameters of his account in the application
+ * that will influence the algorithm of marchmaking.
  *
  * @author Luiz Guilherme Pitta
  */
 public class MenuActivity extends AppCompatActivity implements View.OnClickListener {
 
     /**
-     * Componentes de interface
+     *  Interface Components
      */
     private EditText value, radius;
     private TextView confirmationButton, locationText, cleanText;
@@ -48,14 +48,9 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     private Intent placePicker = null;
     private Double lat = -500.0, lng = -500.0;
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private CompositeSubscription mSubscriptions;
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -86,9 +81,6 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    /**
-     * Método do sistema Android, chamado ao destruir a Activity
-     */
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -97,16 +89,6 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
         EventBus.getDefault().unregister( this );
     }
 
-    @SuppressWarnings("unused")
-    @Subscribe()
-    public void onEventMainThread( SensorPrice sensorPrice ) {
-        Toast.makeText(this, "Passei", Toast.LENGTH_LONG).show();
-    }
-
-    /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
-     */
     @Override
     public void onClick(View view) {
         if(view == confirmationButton)
@@ -157,19 +139,20 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
 
+    @SuppressWarnings("unused")
+    @Subscribe()    // it's actually used to receive events from the Connection Service
+    public void onEventMainThread( SensorPrice sensorPrice ) {
+    }
+
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros de conta do usuário
+     * Method that will make the request to the server to update user account parameters
      *
-     * @param sensorPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param sensorPrice Object with the parameters to run the algorithm on the server.
      */
     private void updateUserBudget(SensorPrice sensorPrice) {
         setProgress(true);
@@ -180,10 +163,8 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     * Method that receives the response from the server if everything has run correctly
      *
-     *
-     * @param response Retorna mensagem que rodou corretamente.
      */
     private void handleResponseUpdate(Response response) {
         setProgress(false);
@@ -191,7 +172,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para pegar as informações de conta do usuário
+     * Method that will make the request to the server to pick up the user account information
      *
      */
     private void getUserInformation() {
@@ -203,10 +184,10 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com as informações do usuário atualizado
+     * Method that receives the response from the server with updated user information
      *
      *
-     * @param response Objeto com o usuário retornado pelo servidor.
+     * @param response Object with the user returned by the server.
      */
     private void handleResponse(Response response) {
 
@@ -233,10 +214,10 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     * Method that receives the response from the server if an error has occurred
      *
      *
-     * @param error Retorna objeto com o erro que ocorreu.
+     * @param error Returns object with the error that occurred.
      */
     private void handleError(Throwable error) {
         setProgress(false);
@@ -244,7 +225,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Se {@code true}, então habilita a barra de progresso
+     * If {@code true}, enable the progress bar
      */
     public void setProgress(boolean progress) {
         if(progress)

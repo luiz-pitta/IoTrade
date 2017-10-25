@@ -3,15 +3,13 @@ package com.lac.pucrio.luizpitta.iotrade.Models;
 import java.util.ArrayList;
 
 /**
- * Modelo onde se armazena as informações que retornam do servidor
+ * Model where information that is returned from the server is stored
  *
  * @author Luiz Guilherme Pitta
  */
 public class Response {
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private String message;
     private ArrayList<SensorPrice> sensorPriceArray = new ArrayList<>();
     private ArrayList<ServiceIoT> services = new ArrayList<>();
@@ -22,69 +20,44 @@ public class Response {
     private User user;
     private double price;
 
-    /**
-     * Classe Builder para construção do Adaptador.
-     */
+    /** Constructor */
     public Response(SensorPrice sensor, ConnectPrice connect, AnalyticsPrice analytics){
         this.sensor = sensor;
         this.connect = connect;
         this.analytics = analytics;
     }
 
-    /**
-     * @return Retorna um array de objetos da classe #SensorPrice.
-     */
+    /** Getters */
     public ArrayList<SensorPrice> getSensorPrice() {
         return sensorPriceArray;
     }
 
-    /**
-     * @return Retorna um objeto da da classe #SensorPrice.
-     */
     public SensorPrice getSensor() {
         return sensor;
     }
 
-    /**
-     * @return Retorna um objeto da da classe #ConnectPrice.
-     */
     public ConnectPrice getConnect() {
         return connect;
     }
 
-    /**
-     * @return Retorna o preço de um objecto #ConnectPrice.
-     */
     public double getPrice() {
         return price;
     }
 
-    /**
-     * @return Retorna um objeto da classe #AnalyticsPrice.
-     */
     public AnalyticsPrice getAnalytics() {
         return analytics;
     }
 
-    /**
-     * @return Retorna a lista de categorias.
-     */
     public ArrayList<String> getCategories() {
         return categories;
     }
 
-    /**
-     * @return Retorna uma String contendo mensagem de erro/sucesso do servidor.
-     */
     public String getMessage() {
         return message;
     }
 
-    /**
-     * @return Retorna um objeto da classe #User.
-     */
     public User getUser() {
         return user;
     }
-
+    /** Getters */
 }

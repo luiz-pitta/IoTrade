@@ -99,9 +99,6 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     private final static long ACK_TIMEOUT = 750; // Seconds x Milliseconds
     private Handler handler = new Handler();
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -200,125 +197,29 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
 
     }
 
-    /**
-     * The method used to logout analytics user.
-     */
-    private void setAnalyticsHubDisabled() {
-        User user = new User();
-        user.setUuid(UUID.fromString(analyticsPriceWrapper.getAnalyticsPrice().getUuid()));
-        user.setDevice(analyticsPriceWrapper.getAnalyticsPrice().getDevice());
-        user.setActive(false);
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSubscriptions.unsubscribe();
 
-        registerAnalytics(user);
+        EventBus.getDefault().unregister( this );
     }
 
-    /**
-     * The method used to register state in server of analytics user.
-     * @param usr The new location object.
-     */
-    private void registerAnalytics(User usr) {
-
-        mSubscriptions.add(NetworkUtil.getRetrofit().setAnalyticsMobileHub(usr)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseLostConnection,this::handleError));
-    }
-
-    private void setMobileHubDisabled() {
-        User user = new User();
-        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
-        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
-        user.setActive(false);
-
-        registerLocation(user);
-    }
-
-    private void registerLocation(User usr) {
-
-        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseLostConnection,this::handleError));
-    }
-
-    private void handleResponseLostConnection(Response response) {
-        switch (response.getMessage()){
-            case "CON":
-                connectionDisabled = true;
-                break;
-            case "ANA":
-                analyticsDisabled = true;
-                break;
-        }
-
-        if((!ackAnalytics && !ackConnection && analyticsDisabled && connectionDisabled) || (!ackConnection && ackAnalytics && connectionDisabled)){
-            keepCalculating = false;
-
-            MatchmakingData msg = new MatchmakingData();
-            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-            msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
-            msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
-            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-            msg.setMacAddress(sensorPrice.getMacAdress());
-            msg.setUuidData(sensorPrice.getUuidData());
-            msg.setStartStop(MatchmakingData.STOP);
-
-            msg.setRoute(ConnectionService.ROUTE_TAG);
-            msg.setPriority(LocalMessage.HIGH);
-
-            EventBus.getDefault().post(msg);
-
-            currentTime = Calendar.getInstance().getTimeInMillis();
-
-            SharedPreferences mSharedPreferences = getSharedPreferences(AppConfig.SHARED_PREF_FILE, MODE_PRIVATE);
-            ObjectServer filter = new ObjectServer();
-
-            Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
-            Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
-
-            Double lat = Double.parseDouble(mSharedPreferences.getString("latitude_current", "-500.0"));
-            Double lng = Double.parseDouble(mSharedPreferences.getString("longitude_current", "-500.0"));
-
-            if (latFixed == -500.0) {
-                filter.setLat(lat);
-                filter.setLng(lng);
-            } else {
-                filter.setLat(latFixed);
-                filter.setLng(lngFixed);
+    @Override
+    public void onClick(View view) {
+        if(view == stopButton) {
+            if(stopButton.getText().toString().equals(getString(R.string.stop))) {
+                stopAnalyticsService();
+                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
+            }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
+                finish();
             }
-
-            filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
-
-            filter.setService(title.getText().toString());
-            filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
-
-            connectionDisabled = false;
-            analyticsDisabled = false;
-
-            ackAnalytics = false;
-            ackConnection = false;
-
-            getSensorChosenAnalytics(filter);
-        }else if(!ackAnalytics && ackConnection && analyticsDisabled){
-            keepCalculating = false;
-
-            currentTime = Calendar.getInstance().getTimeInMillis();
-
-            ObjectServer filter = new ObjectServer();
-
-            filter.setService(title.getText().toString());
-            filter.setAnalyticsDevice(analyticsPriceWrapper.getAnalyticsPrice().getDevice());
-            filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
-            filter.setSensorMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
-
-            connectionDisabled = false;
-            analyticsDisabled = false;
-
-            ackAnalytics = false;
-            ackConnection = false;
-
-            getChosenAnalytics(filter);
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -332,29 +233,14 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         }
     }
 
-    private void stopAnalyticsService(){
-        keepRunning = false;
-
-        MatchmakingData msg = new MatchmakingData();
-        SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-        msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
-        msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
-        msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-        msg.setMacAddress(sensorPrice.getMacAdress());
-        msg.setUuidData(sensorPrice.getUuidData());
-        msg.setStartStop(MatchmakingData.STOP);
-
-        msg.setRoute(ConnectionService.ROUTE_TAG);
-        msg.setPriority(LocalMessage.HIGH);
-
-        EventBus.getDefault().post(msg);
-
-        adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(View v, int position) {
-                Toast.makeText(AnalyticsActivity.this, getString(R.string.analytics_stop_try_again), Toast.LENGTH_LONG).show();
-            }
-        });
+    /**
+     * Se {@code true}, então habilita a barra de progresso
+     */
+    public void setProgress(boolean progress) {
+        if(progress)
+            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
+        else
+            findViewById(R.id.progressBox).setVisibility(View.GONE);
     }
 
     private void runThreadTimeElapsed() {
@@ -468,62 +354,81 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Método do sistema Android, chamado ao destruir a Activity
+     * The method used to logout analytics user.
      */
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mSubscriptions.unsubscribe();
+    private void setAnalyticsHubDisabled() {
+        User user = new User();
+        user.setUuid(UUID.fromString(analyticsPriceWrapper.getAnalyticsPrice().getUuid()));
+        user.setDevice(analyticsPriceWrapper.getAnalyticsPrice().getDevice());
+        user.setActive(false);
 
-        EventBus.getDefault().unregister( this );
+        registerAnalytics(user);
     }
 
     /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
+     * The method used to register state in server of analytics user.
+     * @param usr The new location object.
      */
-    @Override
-    public void onClick(View view) {
-        if(view == stopButton) {
-            if(stopButton.getText().toString().equals(getString(R.string.stop))) {
-                stopAnalyticsService();
-                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
-            }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
-                finish();
-            }
-        }
-    }
+    private void registerAnalytics(User usr) {
 
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
-     *
-     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void getConnectPrice(ConnectPrice connectPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
+        mSubscriptions.add(NetworkUtil.getRetrofit().setAnalyticsMobileHub(usr)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponse,this::handleError));
+                .subscribe(this::handleResponseLostConnection,this::handleError));
+    }
+
+    private void setMobileHubDisabled() {
+        User user = new User();
+        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
+        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
+        user.setActive(false);
+
+        registerLocation(user);
+    }
+
+    private void registerLocation(User usr) {
+
+        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseLostConnection,this::handleError));
+    }
+
+    private void stopAnalyticsService(){
+        keepRunning = false;
+
+        MatchmakingData msg = new MatchmakingData();
+        SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+        msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
+        msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
+        msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+        msg.setMacAddress(sensorPrice.getMacAdress());
+        msg.setUuidData(sensorPrice.getUuidData());
+        msg.setStartStop(MatchmakingData.STOP);
+
+        msg.setRoute(ConnectionService.ROUTE_TAG);
+        msg.setPriority(LocalMessage.HIGH);
+
+        EventBus.getDefault().post(msg);
+
+        adapter.setOnItemClickListener(new RecyclerArrayAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View v, int position) {
+                Toast.makeText(AnalyticsActivity.this, getString(R.string.analytics_stop_try_again), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com as informações atualizadas
+     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
+     * ao escolher uma categoria
      *
-     *
-     * @param response Objeto com o usuário retornado pelo servidor.
      */
-    private void handleResponse(Response response) {
-        currentPrice = response.getPrice();
-        setProgress(false);
+    private void finishAnalyticsNoMatch() {
+        Intent intent = new Intent("finish_no_match");
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
+        Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -539,115 +444,28 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
      *
-     *
-     * @param response Retorna mensagem que rodou corretamente.
+     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
      */
-    private void handleResponseUpdate(Response response) {
-        Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
+    private void getConnectPrice(ConnectPrice connectPrice) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponse,this::handleError));
     }
 
     /**
-     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking com opção de analytics
      *
-     *
-     * @param error Retorna objeto com o erro que ocorreu.
+     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
      */
-    private void handleError(Throwable error) {
-        setProgress(false);
-        Toast.makeText(this, getResources().getString(R.string.network_error), Toast.LENGTH_LONG).show();
-    }
+    private void getSensorChosenAnalytics(ObjectServer objectServer) {
 
-    /**
-     * Se {@code true}, então habilita a barra de progresso
-     */
-    public void setProgress(boolean progress) {
-        if(progress)
-            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
-        else
-            findViewById(R.id.progressBox).setVisibility(View.GONE);
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
-    public void onEvent( String string ) {
-        if(string != null){
-            switch (string){
-                case "a":
-                    ackAnalytics = true;
-                    break;
-                case "c":
-                    ackConnection = true;
-                    break;
-            }
-        }
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
-    public void onEvent( SendSensorData sendSensorData ) {
-        if( sendSensorData != null && (sendSensorData.getData() == null && sendSensorData.getListData() == null)) {
-            if(sendSensorData.getSource() == SendSensorData.MOBILE_HUB) {
-                keepCalculating = false;
-
-                MatchmakingData msg = new MatchmakingData();
-                SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-                msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
-                msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
-                msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-                msg.setMacAddress(sensorPrice.getMacAdress());
-                msg.setUuidData(sensorPrice.getUuidData());
-                msg.setStartStop(MatchmakingData.STOP);
-
-                msg.setRoute(ConnectionService.ROUTE_TAG);
-                msg.setPriority(LocalMessage.HIGH);
-
-                EventBus.getDefault().post(msg);
-
-                currentTime = Calendar.getInstance().getTimeInMillis();
-
-                SharedPreferences mSharedPreferences = getSharedPreferences(AppConfig.SHARED_PREF_FILE, MODE_PRIVATE);
-                ObjectServer filter = new ObjectServer();
-
-                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
-                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
-
-                Double lat = Double.parseDouble(mSharedPreferences.getString("latitude_current", "-500.0"));
-                Double lng = Double.parseDouble(mSharedPreferences.getString("longitude_current", "-500.0"));
-
-                if (latFixed == -500.0) {
-                    filter.setLat(lat);
-                    filter.setLng(lng);
-                } else {
-                    filter.setLat(latFixed);
-                    filter.setLng(lngFixed);
-                }
-
-                filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
-
-                filter.setService(title.getText().toString());
-                filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
-
-                getSensorChosenAnalytics(filter);
-            }else {
-                keepCalculating = false;
-
-                currentTime = Calendar.getInstance().getTimeInMillis();
-
-                ObjectServer filter = new ObjectServer();
-
-                filter.setService(title.getText().toString());
-                filter.setAnalyticsDevice(analyticsPriceWrapper.getAnalyticsPrice().getDevice());
-                filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
-                filter.setSensorMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
-
-                getChosenAnalytics(filter);
-            }
-        }else if( sendSensorData != null && (sendSensorData.getData() != null || sendSensorData.getListData() != null)) {
-            lastTimeData = System.currentTimeMillis();
-            intervalDisconnection = sendSensorData.getInterval();
-        }
+        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithmAnalytics(objectServer)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleSensorChosenAnalytics,this::handleError));
     }
 
     /**
@@ -709,19 +527,6 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking com opção de analytics
-     *
-     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void getSensorChosenAnalytics(ObjectServer objectServer) {
-
-        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithmAnalytics(objectServer)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleSensorChosenAnalytics,this::handleError));
-    }
-
-    /**
      * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
      *
      *
@@ -778,16 +583,116 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         }
     }
 
+    private void handleResponseLostConnection(Response response) {
+        switch (response.getMessage()){
+            case "CON":
+                connectionDisabled = true;
+                break;
+            case "ANA":
+                analyticsDisabled = true;
+                break;
+        }
+
+        if((!ackAnalytics && !ackConnection && analyticsDisabled && connectionDisabled) || (!ackConnection && ackAnalytics && connectionDisabled)){
+            keepCalculating = false;
+
+            MatchmakingData msg = new MatchmakingData();
+            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+            msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
+            msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+            msg.setMacAddress(sensorPrice.getMacAdress());
+            msg.setUuidData(sensorPrice.getUuidData());
+            msg.setStartStop(MatchmakingData.STOP);
+
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
+
+            EventBus.getDefault().post(msg);
+
+            currentTime = Calendar.getInstance().getTimeInMillis();
+
+            SharedPreferences mSharedPreferences = getSharedPreferences(AppConfig.SHARED_PREF_FILE, MODE_PRIVATE);
+            ObjectServer filter = new ObjectServer();
+
+            Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+            Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
+            Double lat = Double.parseDouble(mSharedPreferences.getString("latitude_current", "-500.0"));
+            Double lng = Double.parseDouble(mSharedPreferences.getString("longitude_current", "-500.0"));
+
+            if (latFixed == -500.0) {
+                filter.setLat(lat);
+                filter.setLng(lng);
+            } else {
+                filter.setLat(latFixed);
+                filter.setLng(lngFixed);
+            }
+
+            filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
+
+            filter.setService(title.getText().toString());
+            filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+
+            connectionDisabled = false;
+            analyticsDisabled = false;
+
+            ackAnalytics = false;
+            ackConnection = false;
+
+            getSensorChosenAnalytics(filter);
+        }else if(!ackAnalytics && ackConnection && analyticsDisabled){
+            keepCalculating = false;
+
+            currentTime = Calendar.getInstance().getTimeInMillis();
+
+            ObjectServer filter = new ObjectServer();
+
+            filter.setService(title.getText().toString());
+            filter.setAnalyticsDevice(analyticsPriceWrapper.getAnalyticsPrice().getDevice());
+            filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+            filter.setSensorMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
+
+            connectionDisabled = false;
+            analyticsDisabled = false;
+
+            ackAnalytics = false;
+            ackConnection = false;
+
+            getChosenAnalytics(filter);
+        }
+    }
+
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
-     * ao escolher uma categoria
+     * Metódo que recebe a resposta do servidor com as informações atualizadas
      *
+     *
+     * @param response Objeto com o usuário retornado pelo servidor.
      */
-    private void finishAnalyticsNoMatch() {
-        Intent intent = new Intent("finish_no_match");
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
-        Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
+    private void handleResponse(Response response) {
+        currentPrice = response.getPrice();
+        setProgress(false);
+    }
+
+    /**
+     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     *
+     *
+     * @param response Retorna mensagem que rodou corretamente.
+     */
+    private void handleResponseUpdate(Response response) {
+        Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
+    }
+
+    /**
+     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     *
+     *
+     * @param error Retorna objeto com o erro que ocorreu.
+     */
+    private void handleError(Throwable error) {
+        setProgress(false);
+        Toast.makeText(this, getResources().getString(R.string.network_error), Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -961,5 +866,86 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         });
 
         dialog.show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    @SuppressWarnings("unused")
+    public void onEvent( String string ) {
+        if(string != null){
+            switch (string){
+                case "a":
+                    ackAnalytics = true;
+                    break;
+                case "c":
+                    ackConnection = true;
+                    break;
+            }
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    @SuppressWarnings("unused")
+    public void onEvent( SendSensorData sendSensorData ) {
+        if( sendSensorData != null && (sendSensorData.getData() == null && sendSensorData.getListData() == null)) {
+            if(sendSensorData.getSource() == SendSensorData.MOBILE_HUB) {
+                keepCalculating = false;
+
+                MatchmakingData msg = new MatchmakingData();
+                SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+                msg.setUuidClient(analyticsPriceWrapper.getAnalyticsPrice().getUuid());
+                msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
+                msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+                msg.setMacAddress(sensorPrice.getMacAdress());
+                msg.setUuidData(sensorPrice.getUuidData());
+                msg.setStartStop(MatchmakingData.STOP);
+
+                msg.setRoute(ConnectionService.ROUTE_TAG);
+                msg.setPriority(LocalMessage.HIGH);
+
+                EventBus.getDefault().post(msg);
+
+                currentTime = Calendar.getInstance().getTimeInMillis();
+
+                SharedPreferences mSharedPreferences = getSharedPreferences(AppConfig.SHARED_PREF_FILE, MODE_PRIVATE);
+                ObjectServer filter = new ObjectServer();
+
+                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
+                Double lat = Double.parseDouble(mSharedPreferences.getString("latitude_current", "-500.0"));
+                Double lng = Double.parseDouble(mSharedPreferences.getString("longitude_current", "-500.0"));
+
+                if (latFixed == -500.0) {
+                    filter.setLat(lat);
+                    filter.setLng(lng);
+                } else {
+                    filter.setLat(latFixed);
+                    filter.setLng(lngFixed);
+                }
+
+                filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
+
+                filter.setService(title.getText().toString());
+                filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+
+                getSensorChosenAnalytics(filter);
+            }else {
+                keepCalculating = false;
+
+                currentTime = Calendar.getInstance().getTimeInMillis();
+
+                ObjectServer filter = new ObjectServer();
+
+                filter.setService(title.getText().toString());
+                filter.setAnalyticsDevice(analyticsPriceWrapper.getAnalyticsPrice().getDevice());
+                filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+                filter.setSensorMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
+
+                getChosenAnalytics(filter);
+            }
+        }else if( sendSensorData != null && (sendSensorData.getData() != null || sendSensorData.getListData() != null)) {
+            lastTimeData = System.currentTimeMillis();
+            intervalDisconnection = sendSensorData.getInterval();
+        }
     }
 }

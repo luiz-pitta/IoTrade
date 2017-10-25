@@ -9,19 +9,19 @@ import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.ViewHolder.SensorPriceViewHolder;
 
 /**
- * Adaptador onde se controla os dados dos sensores
+ * Adapter where you control the sensor data
  *
  * @author Luiz Guilherme Pitta
  */
 public class SensorPriceAdapter extends RecyclerArrayAdapter<SensorPrice> {
 
     /**
-     * Variáveis
+     * Variables
      */
     private Context context;
 
     /**
-     * Classe Builder para construção do Adaptador.
+     * Builder Class for Adapter construction.
      */
     public SensorPriceAdapter(Context context) {
         super(context);
@@ -29,7 +29,7 @@ public class SensorPriceAdapter extends RecyclerArrayAdapter<SensorPrice> {
     }
 
     /**
-     * Método do sistema Android, chamado ao criar o adaptador
+     * Android System Method Called When Creating the Adapter
      */
     @Override
     public BaseViewHolder OnCreateViewHolder(ViewGroup parent, int viewType) {

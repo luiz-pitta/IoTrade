@@ -8,15 +8,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import rx.schedulers.Schedulers;
 
 /**
- * Classe responsável pela conexão com o banco através da biblioteca Retrofit
- *
+ * Network base function using REST Api (Retrofit)
  * @author Luiz Guilherme Pitta
  */
 public class NetworkUtil {
 
-    /**
-     * @return Retorna uma instância do conector com o servidor.
-     */
     public static RetrofitInterface getRetrofit(){
 
         RxJavaCallAdapterFactory rxAdapter = RxJavaCallAdapterFactory.createWithScheduler(Schedulers.io());

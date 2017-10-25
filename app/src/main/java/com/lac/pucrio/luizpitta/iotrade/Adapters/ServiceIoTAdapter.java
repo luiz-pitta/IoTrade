@@ -10,19 +10,19 @@ import com.lac.pucrio.luizpitta.iotrade.ViewHolder.ServiceIoTViewHolder;
 import java.util.ArrayList;
 
 /**
- * Adaptador onde se controla os dados de categorias
+ * Adapter where you control the category data
  *
  * @author Luiz Guilherme Pitta
  */
 public class ServiceIoTAdapter extends RecyclerArrayAdapter<String> {
 
     /**
-     * Variáveis
+     * Variables
      */
     private Context context;
 
     /**
-     * Classe Builder para construção do Adaptador.
+     * Builder Class for Adapter construction.
      */
     public ServiceIoTAdapter(Context context) {
         super(context);
@@ -30,9 +30,9 @@ public class ServiceIoTAdapter extends RecyclerArrayAdapter<String> {
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos sensores
+     * Method that will make the request to the server to update parameters of the sensors
      *
-     * @param list Lista com os novas categorias para trocar com a lista antiga e atualizar a interface.
+     * @param list List with the new categories to switch to the old list and refresh the interface.
      */
     public void swap(ArrayList<String> list){
         clear();
@@ -40,7 +40,7 @@ public class ServiceIoTAdapter extends RecyclerArrayAdapter<String> {
     }
 
     /**
-     * Método do sistema Android, chamado ao criar o adaptador
+     * Android System Method Called When Creating the Adapter
      */
     @Override
     public BaseViewHolder OnCreateViewHolder(ViewGroup parent, int viewType) {

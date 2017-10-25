@@ -29,27 +29,22 @@ import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe onde se apresentam os sensores registrados na aplicação, onde administrador
- * pode alterar os valores deles
+ * Class where sensors registered in the application are presented, where administrator
+ * can change their values
  *
  * @author Luiz Guilherme Pitta
  */
 public class OptionsActivity extends AppCompatActivity {
 
     /**
-     * Componentes de interface
+     * Interface Components
      */
     private EasyRecyclerView recyclerView;
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private CompositeSubscription mSubscriptions;
     private SensorPriceAdapter adapter;
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,28 +77,21 @@ public class OptionsActivity extends AppCompatActivity {
         getSensorInformation();
     }
 
-    /**
-     * Método do sistema Android, chamado ao destruir a Activity
-     */
     @Override
     public void onDestroy() {
         super.onDestroy();
         mSubscriptions.unsubscribe();
     }
 
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos sensores
+     * Method that will make the request to the server to update parameters of the sensors
      *
-     * @param sensorPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param sensorPrice Object with the parameters to run the algorithm on the server.
      */
     private void updateSensorInformation(SensorPrice sensorPrice) {
         mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorInformation(sensorPrice)
@@ -113,10 +101,8 @@ public class OptionsActivity extends AppCompatActivity {
     }
 
     /**
-     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     * Method that receives the response from the server if everything has run correctly
      *
-     *
-     * @param response Retorna mensagem que rodou corretamente.
      */
     private void handleResponseUpdate(Response response) {
         getSensorInformation();
@@ -124,7 +110,7 @@ public class OptionsActivity extends AppCompatActivity {
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para pegar as informações dos sensores
+     * Method that will make the request to the server to retrieve information from the sensors
      *
      */
     private void getSensorInformation() {
@@ -135,10 +121,10 @@ public class OptionsActivity extends AppCompatActivity {
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com as informações dos sensores
+     * Method that receives the response from the server with the sensor information
      *
      *
-     * @param response Objeto com a lista de sensores retornada pelo servidor.
+     * @param response Object with the list of sensors returned by the server.
      */
     private void handleResponse(Response response) {
         adapter.clear();
@@ -146,20 +132,19 @@ public class OptionsActivity extends AppCompatActivity {
     }
 
     /**
-     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     * Method that receives the response from the server if an error has occurred.
      *
-     *
-     * @param error Retorna objeto com o erro que ocorreu.
+     * @param error Returns object with the error that occurred.
      */
     private void handleError(Throwable error) {
         Toast.makeText(this, getResources().getString(R.string.network_error), Toast.LENGTH_LONG).show();
     }
 
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao administrador quais informações ele deseja
-     * alterar para detarminado sensor
+     * Method creates a pop-up dialog to ask the administrator what information he wants
+     * change to certain sensor
      *
-     * @param item posição do sensor na lista.
+     * @param item position in the list.
      */
     private void createDialogUpdate(int item) {
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);

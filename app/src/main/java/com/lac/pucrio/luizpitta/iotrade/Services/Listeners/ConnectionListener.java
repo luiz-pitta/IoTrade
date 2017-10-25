@@ -13,9 +13,7 @@ import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -78,15 +76,6 @@ public class ConnectionListener implements NodeConnectionListener {
 	@Override
 	public void internalException( NodeConnection nc, Exception e ) {
 		AppUtils.logger( 'i', TAG, "InternalException... " + e.getMessage() );
-	}
-
-	public static double[] toDoubleArray(byte[] byteArray){
-		int times = Double.SIZE / Byte.SIZE;
-		double[] doubles = new double[byteArray.length / times];
-		for(int i=0;i<doubles.length;i++){
-			doubles[i] = ByteBuffer.wrap(byteArray, i*times, times).getDouble();
-		}
-		return doubles;
 	}
 
 	@Override

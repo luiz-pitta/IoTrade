@@ -1,26 +1,13 @@
 package com.lac.pucrio.luizpitta.iotrade.Services;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.BatteryManager;
 import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
-import android.widget.Toast;
 
 import com.infopae.model.BuyAnalyticsData;
 import com.infopae.model.SendActuatorData;
-import com.lac.pucrio.luizpitta.iotrade.BroadcastReceivers.BroadcastMessage;
-import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
-import com.lac.pucrio.luizpitta.iotrade.Models.locals.EventData;
-import com.lac.pucrio.luizpitta.iotrade.Models.locals.LocationData;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
-import com.lac.pucrio.luizpitta.iotrade.Models.locals.MessageData;
-import com.lac.pucrio.luizpitta.iotrade.Models.locals.SensorData;
 import com.lac.pucrio.luizpitta.iotrade.Services.Listeners.ConnectionListener;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
@@ -28,7 +15,6 @@ import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -41,9 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lac.cnclib.net.NodeConnection;
 import lac.cnclib.net.mrudp.MrUdpNodeConnection;
 import lac.cnclib.sddl.message.ApplicationMessage;
-import lac.cnclib.sddl.message.ClientLibProtocol.PayloadSerialization;
 import lac.cnclib.sddl.message.Message;
-import mf.org.apache.xerces.impl.xpath.regex.Match;
 
 public class ConnectionService extends Service {
 	/** DEBUG */
@@ -74,9 +58,6 @@ public class ConnectionService extends Service {
 	/** The MrUDP socket connection */
 	private SocketAddress socket;
 
-	/** The last location object */
-	private LocationData lastLocation;
-
 	/** The keep running flag to indicate if the service is running, used internally */
 	private volatile Boolean keepRunning;
 
@@ -87,18 +68,7 @@ public class ConnectionService extends Service {
     private Integer sendAllMsgsInterval;
 
 	/** A list of messages to be sent to the gateway */
-	//private final LinkedHashMap<String, Message> lstMsg = new LinkedHashMap<>();
 	private final ConcurrentHashMap<String, Message> lstMsg = new ConcurrentHashMap<>();
-	//private final ConcurrentLinkedQueue<Message> lstMsg = new ConcurrentLinkedQueue<>();
-
-	/**
-	 * The device connectivity, not related to the MrUDP connection, there are
-	 * 3 types.
-	 * - No Connection
-	 * - 3G
-	 * - WiFi
-	 */
-	private String deviceTypeConnectivity;
 
 	final Object lock = new Object();
 
@@ -203,35 +173,7 @@ public class ConnectionService extends Service {
 			AppUtils.saveSendSignalsInterval( ac,
 					AppConfig.DEFAULT_MESSAGES_INTERVAL_LOW,
 					AppConfig.SPREF_MESSAGES_INTERVAL_LOW );
-
-		// check for the network status
-		ConnectivityManager cm = (ConnectivityManager) ac.getSystemService( Context.CONNECTIVITY_SERVICE );
-		NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-
-		if( activeNetwork != null ) {
-		    boolean isConnected = activeNetwork.isConnected();
-		    boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
-		    boolean is3G   = activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE;
-
-		    if( isConnected && isWiFi )
-		    	deviceTypeConnectivity = BroadcastMessage.INFO_CONNECTIVITY_WIFI;
-		    else if( isConnected && is3G )
-		    	deviceTypeConnectivity = BroadcastMessage.INFO_CONNECTIVITY_3G;
-		    else if( !isConnected )
-		    	deviceTypeConnectivity = BroadcastMessage.INFO_CONNECTIVITY_NO_CONNECTION;
-		}
 	}
-
-    /**
-     * Creates the MR-UDP connection
-     * @return the connection
-     * @throws IOException
-     */
-    /*public static NodeConnection getConnection() throws IOException {
-        if( connection == null )
-            connection = new MrUdpNodeConnection();
-        return connection;
-    }*/
 
 	/**
 	 * It starts the connection thread, it creates the connection and everything
@@ -327,100 +269,21 @@ public class ConnectionService extends Service {
 		}
 	}
 
-    /**
-     * Creates an application message to send to the cloud in JSON
-     * It includes the current location if exists to the message
-     * Depending on the priority it will send the message immediately
-     * or group it to be sent in an interval of time
-     * @param s The Mobile Hub Message structure
-     * @param sender The UUID of the Mobile Hub
-     */
-    private void createAndQueueMsg(LocalMessage s, UUID sender) {
-        s.setUuid( sender.toString() );
-        /*Double latitude = null, longitude = null;
-
-        // If location service not activated, set location
-        if( !AppUtils.getCurrentLocationService( ac ) ) {
-            latitude = AppUtils.getLocationLatitude( ac );
-            longitude = AppUtils.getLocationLongitude( ac );
-        }
-        // The last known location
-        else if( lastLocation != null ) {
-            latitude = lastLocation.getLatitude();
-            longitude = lastLocation.getLongitude();
-        }
-
-        if( latitude != null && longitude != null ) {
-            s.setLatitude( latitude );
-            s.setLongitude( longitude );
-        }*/
-
-        try {
-            ApplicationMessage am = new ApplicationMessage();
-            am.setPayloadType( PayloadSerialization.JSON );
-            am.setContentObject( s.toJSON() );
-            am.setTagList( new ArrayList<String>() );
-            am.setSenderID( sender );
-
-            if( s.getPriority().equals( LocalMessage.HIGH ) ) {
-                connection.sendMessage( am );
-            } else {
-                synchronized( lstMsg ) {
-                    lstMsg.put( s.getID(), am );
-					//lstMsg.add( am );
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-	@Subscribe()
-    @SuppressWarnings("unused") // it's actually used to receive events from the Location Service
-    public void onEvent( LocationData locData ) {
-        if( locData != null && AppUtils.isInRoute( ROUTE_TAG, locData.getRoute() ) ) {
-			AppUtils.logger( 'i', TAG, ">> NEW_LOCATION_MSG" );
-            //create the message
-            locData.setConnectionType( deviceTypeConnectivity );
-            // set the battery status
-            IntentFilter battFilter = new IntentFilter( Intent.ACTION_BATTERY_CHANGED );
-            Intent iBatt = ac.registerReceiver( null, battFilter );
-
-            // No battery present
-            if( iBatt == null ) {
-                AppUtils.logger( 'e', TAG, "No Battery Present" );
-            } else {
-                int level = iBatt.getIntExtra( BatteryManager.EXTRA_LEVEL, -1 );
-                float scale = iBatt.getIntExtra( BatteryManager.EXTRA_SCALE, -1 );
-                int battLevel = (int) ( ( level / scale ) * 100 );
-                locData.setBatteryPercent( battLevel );
-                // set the battery charging
-                int charging = iBatt.getIntExtra( BatteryManager.EXTRA_STATUS, -1 );
-                locData.setCharging( charging == BatteryManager.BATTERY_STATUS_CHARGING );
-            }
-
-            // save the last location (used when a new msg is send)
-            lastLocation = locData;
-            // add the message to the queue
-            //createAndQueueMsg( locData, uuid );
-        }
-    }
-
-	@Subscribe() @SuppressWarnings("unused")
+	@Subscribe() @SuppressWarnings("unused") // it's actually used to receive activity information and send to contextnet
 	public void onEvent( MatchmakingData matchmakingData ) {
 		if( matchmakingData != null && AppUtils.isInRoute( ROUTE_TAG, matchmakingData.getRoute() ) ) {
-			createAndQueueMsg( matchmakingData, uuid );
+			createAndSendMsg( matchmakingData, uuid );
 		}
 	}
 
-	@Subscribe() @SuppressWarnings("unused")
+	@Subscribe() @SuppressWarnings("unused") // it's actually used to receive from ActuatorActivity and send to contextnet
 	public void onEvent( SendActuatorData sendActuatorData ) {
 		if( sendActuatorData != null ) {
 			createAndSendMsg( sendActuatorData, uuid );
 		}
 	}
 
-	@Subscribe() @SuppressWarnings("unused")
+	@Subscribe() @SuppressWarnings("unused")	// it's actually used to receive from AnalyticsActivity and send to contextnet
 	public void onEvent( BuyAnalyticsData buyAnalyticsData ) {
 		if( buyAnalyticsData != null ) {
 			createAndSendMsg( buyAnalyticsData, uuid );

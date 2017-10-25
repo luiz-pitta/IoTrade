@@ -13,81 +13,86 @@ import retrofit2.http.POST;
 import rx.Observable;
 
 /**
- * Classe responsável pelas chamadas ao servidor através dos cabeçalhos definidos (@GET e @POST)
- *
+ * Functions to communicate with Server using POST and GET
  * @author Luiz Guilherme Pitta
  */
 public interface RetrofitInterface {
 
     /**
-     * @return Retorna as informações dos sensores.
+     * @return Returns the sensor information.
      */
     @GET("get_sensor_price_information/")
     Observable<Response> getSensorPrice();
 
     /**
-     * @return Retorna as informações dos sensores.
+     * @return Returns the connection provider information.
      */
     @POST("get_connect_price_information/")
     Observable<Response> getConnectPrice(@Body ConnectPrice connectPrice);
 
     /**
-     * @return Retorna o usuário do servidor.
+     * @return Returns user information
      */
     @GET("get_user/")
     Observable<Response> getUser();
 
     /**
-     * @return Retorna as informações dos serviços.
+     * @return Returns the service information.
      */
     @POST("get_services_information/")
     Observable<Response> getServices(@Body ServiceIoT serviceIoT);
 
     /**
-     * @return Retorna uma mensagem que tudo ocorreu certo na atualização dos dados.
+     * Updates User Budget
      */
     @POST("update_user_budget/")
     Observable<Response> updateUserBudget(@Body SensorPrice sensorPrice);
 
     /**
-     * @return Retorna uma mensagem que tudo ocorreu certo na atualização dos dados.
+     * Updates Actuator Information
      */
     @POST("set_actuator_state/")
     Observable<Response> setActuatorState(@Body SensorPrice sensorPrice);
 
     /**
-     * @return Retorna uma mensagem que tudo ocorreu certo na atualização dos dados.
+     * Updates Sensor Rating
      */
     @POST("update_sensor_rating/")
     Observable<Response> updateSensorRating(@Body Response response);
 
     /**
-     * @return Retorna uma mensagem que tudo ocorreu certo na atualização dos dados.
+     * Updates Sensor Information
      */
     @POST("update_sensor_information/")
     Observable<Response> updateSensorInformation(@Body SensorPrice sensorPrice);
 
     /**
-     * @return Retorna os serviços sem analytics do algoritmo de matchmaking.
+     * @return Returns the services without analytics of the matchmaking algorithm.
      */
     @POST("get_sensor_matchmaking/")
     Observable<Response> getSensorAlgorithm(@Body ObjectServer objectServer);
 
     /**
-     * @return Retorna os serviços com analytics do algoritmo de matchmaking.
+     * @return Returns the services with analytics of the matchmaking algorithm.
      */
     @POST("get_sensor_matchmaking_analytics/")
     Observable<Response> getSensorAlgorithmAnalytics(@Body ObjectServer objectServer);
 
     /**
-     * @return Retorna os serviços com analytics do algoritmo de matchmaking.
+     * @return Returns an analytics provider using a matchmaking algorithm.
      */
     @POST("get_new_analytics/")
     Observable<Response> getNewAnalytics(@Body ObjectServer objectServer);
 
+    /**
+     * Updates Connectivity Provider information.
+     */
     @POST("register_location")
     Observable<Response> setLocationMobileHub(@Body User user);
 
+    /**
+     * Updates Analytics Provider information.
+     */
     @POST("register_analytics")
     Observable<Response> setAnalyticsMobileHub(@Body User user);
 }

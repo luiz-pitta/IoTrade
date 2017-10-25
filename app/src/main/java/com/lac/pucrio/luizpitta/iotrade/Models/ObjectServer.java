@@ -1,19 +1,18 @@
 package com.lac.pucrio.luizpitta.iotrade.Models;
 
 /**
- * Modelo onde se armazena as informações gerais do dispositivo
+ * Model where general device information is stored
  *
  * @author Luiz Guilherme Pitta
  */
 public class ObjectServer {
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private String service, connectionDevice, analyticsDevice, sensorMacAddress;
     private Double lat, lng;
     private Float radius;
 
+    /** Setters */
     public void setService(String service) {
         this.service = service;
     }
@@ -41,4 +40,5 @@ public class ObjectServer {
     public void setSensorMacAddress(String sensorMacAddress) {
         this.sensorMacAddress = sensorMacAddress;
     }
+    /** Setters */
 }

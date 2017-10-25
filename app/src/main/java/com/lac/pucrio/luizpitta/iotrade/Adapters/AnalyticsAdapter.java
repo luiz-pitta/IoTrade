@@ -11,19 +11,19 @@ import com.lac.pucrio.luizpitta.iotrade.ViewHolder.AnalyticsPriceViewHolder;
 import com.lac.pucrio.luizpitta.iotrade.ViewHolder.SensorPriceViewHolder;
 
 /**
- * Adaptador onde se controla os dados dos sensores
+ * Adapter where you control the analytics data
  *
  * @author Luiz Guilherme Pitta
  */
 public class AnalyticsAdapter extends RecyclerArrayAdapter<AnalyticsPrice> {
 
     /**
-     * Variáveis
+     * Variables
      */
     private Context context;
 
     /**
-     * Classe Builder para construção do Adaptador.
+     * Builder Class for Adapter construction.
      */
     public AnalyticsAdapter(Context context) {
         super(context);
@@ -31,7 +31,7 @@ public class AnalyticsAdapter extends RecyclerArrayAdapter<AnalyticsPrice> {
     }
 
     /**
-     * Método do sistema Android, chamado ao criar o adaptador
+     * Android System Method Called When Creating the Adapter
      */
     @Override
     public BaseViewHolder OnCreateViewHolder(ViewGroup parent, int viewType) {

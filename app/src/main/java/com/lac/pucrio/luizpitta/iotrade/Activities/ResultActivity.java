@@ -1,26 +1,18 @@
 package com.lac.pucrio.luizpitta.iotrade.Activities;
 
-import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlacePicker;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.hsalf.smilerating.BaseRating;
 import com.hsalf.smilerating.SmileRating;
 import com.infopae.model.SendSensorData;
@@ -46,9 +38,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.lang.reflect.Type;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
@@ -85,9 +75,6 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     private Double currentPrice;
     private long currentTime, currentTimeAfter, diff, lastTimeData;
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,25 +111,44 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         priceTarget = mSharedPreferences.getFloat("price_target", 20.0f);
     }
 
-    private void setMobileHubDisabled() {
-        User user = new User();
-        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
-        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
-        user.setActive(false);
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSubscriptions.unsubscribe();
 
-        registerLocation(user);
+        EventBus.getDefault().unregister( this );
     }
 
-    private void registerLocation(User usr) {
+    @Override
+    public void onClick(View view) {
+        if(view == stopButton) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseLostConnection,this::handleError));
+            if(stopButton.getText().toString().equals(getString(R.string.stop))) {
+                keepRunning = false;
+
+                MatchmakingData msg = new MatchmakingData();
+                SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+                msg.setUuidClient(AppUtils.getUuid(this).toString());
+                msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+                msg.setMacAddress(sensorPrice.getMacAdress());
+                msg.setUuidData(sensorPrice.getUuidData());
+                msg.setStartStop(MatchmakingData.STOP);
+
+                msg.setRoute(ConnectionService.ROUTE_TAG);
+                msg.setPriority(LocalMessage.HIGH);
+
+                EventBus.getDefault().post(msg);
+
+                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
+            }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
+                finish();
+            }
+        }
     }
 
-    private void handleResponseLostConnection(Response response) {
-        doMatchmaking();
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     private void runThreadTimeElapsed() {
@@ -232,49 +238,30 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Método do sistema Android, chamado ao destruir a Activity
+     * Se {@code true}, então habilita a barra de progresso
      */
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mSubscriptions.unsubscribe();
-
-        EventBus.getDefault().unregister( this );
+    public void setProgress(boolean progress) {
+        if(progress)
+            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
+        else
+            findViewById(R.id.progressBox).setVisibility(View.GONE);
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
-    public void onEvent( SendSensorData sendSensorData ) {
-        if( sendSensorData != null && sendSensorData.getData() != null) {
-            Double[] sensorData = sendSensorData.getData();
-            String data = dataText.getText().toString() + getString(R.string.data) + "\n";
-            data += Arrays.toString(sensorData) + "\n";
-            data += getString(R.string.unit) + " " + sensorPriceWrapper.getSensorPrice().getUnit() + "\n";
-            data += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
-            dataText.setText(data);
+    private void setMobileHubDisabled() {
+        User user = new User();
+        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
+        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
+        user.setActive(false);
 
-            lastTimeData = System.currentTimeMillis();
-            intervalDisconnection = sendSensorData.getInterval();
+        registerLocation(user);
+    }
 
-            AppUtils.logger( 'i', Arrays.toString(sendSensorData.getData()), "Connected and Identified..." );
-        }else if(sendSensorData != null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB){
-            keepCalculating = false;
+    private void registerLocation(User usr) {
 
-            MatchmakingData msg = new MatchmakingData();
-            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-            msg.setUuidClient(AppUtils.getUuid(this).toString());
-            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-            msg.setMacAddress(sensorPrice.getMacAdress());
-            msg.setUuidData(sensorPrice.getUuidData());
-            msg.setStartStop(MatchmakingData.STOP);
-
-            msg.setRoute(ConnectionService.ROUTE_TAG);
-            msg.setPriority(LocalMessage.HIGH);
-
-            EventBus.getDefault().post(msg);
-
-            doMatchmaking();
-        }
+        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
     private void doMatchmaking(){
@@ -306,6 +293,18 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
+     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
+     *
+     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
+     */
+    private void updateSensorInformation(Response response) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponseUpdate,this::handleError));
+    }
+
+    /**
      * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking sem opção de analytics
      *
      * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
@@ -315,6 +314,29 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosen,this::handleError));
+    }
+
+    /**
+     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
+     *
+     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     */
+    private void getConnectPrice(ConnectPrice connectPrice) {
+        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(this::handleResponsePrice,this::handleError));
+    }
+
+    /**
+     * Metódo que recebe a resposta do servidor com as informações atualizadas
+     *
+     *
+     * @param response Objeto com o usuário retornado pelo servidor.
+     */
+    private void handleResponsePrice(Response response) {
+        currentPrice = response.getPrice();
+        setProgress(false);
     }
 
     /**
@@ -361,69 +383,6 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
-     */
-    @Override
-    public void onClick(View view) {
-        if(view == stopButton) {
-
-            if(stopButton.getText().toString().equals(getString(R.string.stop))) {
-                keepRunning = false;
-
-                MatchmakingData msg = new MatchmakingData();
-                SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
-                msg.setUuidClient(AppUtils.getUuid(this).toString());
-                msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
-                msg.setMacAddress(sensorPrice.getMacAdress());
-                msg.setUuidData(sensorPrice.getUuidData());
-                msg.setStartStop(MatchmakingData.STOP);
-
-                msg.setRoute(ConnectionService.ROUTE_TAG);
-                msg.setPriority(LocalMessage.HIGH);
-
-                EventBus.getDefault().post(msg);
-
-                createDialogRating(sensorPriceWrapper.getSensorPrice(), connectPriceWrapper.getConnectPrice(), analyticsPriceWrapper.getAnalyticsPrice());
-            }else if(stopButton.getText().toString().equals(getString(R.string.exit))) {
-                finish();
-            }
-        }
-    }
-
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    /**
-     * Metódo que recebe a resposta do servidor com as informações do usuário atualizado
-     *
-     *
-     * @param response Objeto com o usuário retornado pelo servidor.
-     */
-    private void handleResponse(Response response) {
-
-        setProgress(false);
-    }
-
-    /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
-     *
-     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void updateSensorInformation(Response response) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponseUpdate,this::handleError));
-    }
-
-    /**
      * Metódo que recebe a resposta do servidor se tudo rodou corretamente
      *
      *
@@ -431,6 +390,10 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
      */
     private void handleResponseUpdate(Response response) {
         Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
+    }
+
+    private void handleResponseLostConnection(Response response) {
+        doMatchmaking();
     }
 
     /**
@@ -443,17 +406,6 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         setProgress(false);
         Toast.makeText(this, getResources().getString(R.string.network_error), Toast.LENGTH_LONG).show();
     }
-
-    /**
-     * Se {@code true}, então habilita a barra de progresso
-     */
-    public void setProgress(boolean progress) {
-        if(progress)
-            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
-        else
-            findViewById(R.id.progressBox).setVisibility(View.GONE);
-    }
-
 
     /**
      * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
@@ -561,26 +513,38 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         dialog.show();
     }
 
-    /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
-     *
-     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
-     */
-    private void getConnectPrice(ConnectPrice connectPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(this::handleResponsePrice,this::handleError));
-    }
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    @SuppressWarnings("unused")
+    public void onEvent( SendSensorData sendSensorData ) {
+        if( sendSensorData != null && sendSensorData.getData() != null) {
+            Double[] sensorData = sendSensorData.getData();
+            String data = dataText.getText().toString() + getString(R.string.data) + "\n";
+            data += Arrays.toString(sensorData) + "\n";
+            data += getString(R.string.unit) + " " + sensorPriceWrapper.getSensorPrice().getUnit() + "\n";
+            data += getString(R.string.date_time) + " " + Utilities.getDate(System.currentTimeMillis(), "dd/MM/yyyy hh:mm a") + "\n\n";
+            dataText.setText(data);
 
-    /**
-     * Metódo que recebe a resposta do servidor com as informações atualizadas
-     *
-     *
-     * @param response Objeto com o usuário retornado pelo servidor.
-     */
-    private void handleResponsePrice(Response response) {
-        currentPrice = response.getPrice();
-        setProgress(false);
+            lastTimeData = System.currentTimeMillis();
+            intervalDisconnection = sendSensorData.getInterval();
+
+            AppUtils.logger( 'i', Arrays.toString(sendSensorData.getData()), "Connected and Identified..." );
+        }else if(sendSensorData != null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB){
+            keepCalculating = false;
+
+            MatchmakingData msg = new MatchmakingData();
+            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+            msg.setUuidClient(AppUtils.getUuid(this).toString());
+            msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
+            msg.setMacAddress(sensorPrice.getMacAdress());
+            msg.setUuidData(sensorPrice.getUuidData());
+            msg.setStartStop(MatchmakingData.STOP);
+
+            msg.setRoute(ConnectionService.ROUTE_TAG);
+            msg.setPriority(LocalMessage.HIGH);
+
+            EventBus.getDefault().post(msg);
+
+            doMatchmaking();
+        }
     }
 }

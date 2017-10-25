@@ -9,16 +9,16 @@ import java.util.Calendar;
 import java.util.Locale;
 
 /**
- * Classe que contêm métodos úteis para calculo de atributos relacionados a interface
+ * Class containing useful methods for calculating interface-related attributes
  *
  * @author Luiz Guilherme Pitta
  */
 public class Utilities {
 
     /**
-     * Método responsável por converter a unidade de DP para Pixel
+     * Method responsible for converting the DP unit to Pixel
      *
-     * @return quantidade de pixel.
+     * @return amount of pixel.
      */
     public static float convertDpToPixel(float dp, Context context){
         Resources resources = context.getResources();

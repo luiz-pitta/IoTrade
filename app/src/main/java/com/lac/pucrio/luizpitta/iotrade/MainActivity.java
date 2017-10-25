@@ -51,12 +51,10 @@ import com.lac.pucrio.luizpitta.iotrade.Models.ServiceIoT;
 import com.lac.pucrio.luizpitta.iotrade.Models.User;
 import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
-import com.lac.pucrio.luizpitta.iotrade.Models.locals.MessageData;
 import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
-import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
 import org.greenrobot.eventbus.EventBus;
@@ -72,8 +70,8 @@ import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe principal da aplicação, onde tem toda a interação de receber e mandar os dados
- * do servidor conforme interação do usuário.
+ * Main application class, where you have all the interaction of receiving and sending data
+ * of the server according to user interaction.
  *
  * @author Luiz Guilherme Pitta
  */
@@ -84,16 +82,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         SwipeRefreshLayout.OnRefreshListener {
 
     /**
-     * Componentes de interface
+     * Interface Components
      */
     private TextView optionsButton, configButton, onButton;
     private EasyRecyclerView recyclerView;
     private SearchView searchView;
     private ServiceIoTAdapter adapter;
 
-    /**
-     * Variáveis
-     */
+    /** Attributes */
     private CompositeSubscription mSubscriptions;
     private Handler handler = new Handler();
     private ArrayList<String> serviceIoTQueryList = new ArrayList<>(), serviceIoTList = new ArrayList<>();
@@ -109,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private final static long ACK_TIMEOUT = 750; // Seconds x Milliseconds
 
     /**
-     * Listner que é chamado ao usuário digitar algum caractere no campo de busca
+     * Listener that is called to the user to type some character in the search field
      * @see #executeFilter(String)
      */
     private SearchView.OnQueryTextListener mOnQueryTextListener = new SearchView.OnQueryTextListener() {
@@ -126,9 +122,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -211,9 +204,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         EventBus.getDefault().register( this );
     }
 
-    /**
-     * Método do sistema Android, chamado ao arrastar para atualizar a lista de categorias
-     */
     @Override
     public void onRefresh() {
 
@@ -246,9 +236,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    /**
-     * Método do sistema Android, chamado ao destruir a Activity
-     */
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -257,9 +244,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         EventBus.getDefault().unregister( this );
     }
 
-    /**
-     * Método do sistema Android, chamado ao resumir a Activity
-     */
     @Override
     public void onResume() {
         super.onResume();
@@ -270,9 +254,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         googleApiClient.connect();
     }
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     public void onStart() {
         super.onStart();
@@ -280,9 +261,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             googleApiClient.connect();
     }
 
-    /**
-     * Método do sistema Android, chamado ao parar a Activity
-     */
     @Override
     public void onStop() {
         super.onStop();
@@ -290,9 +268,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             googleApiClient.disconnect();
     }
 
-    /**
-     * Método do sistema Android, chamado ao aprovar/rejeitar alguma permissão da aplicação
-     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
@@ -307,19 +282,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
-     */
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
 
-    /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
-     */
     @Override
     public void onClick(View view) {
         if(view == configButton){
@@ -343,8 +310,68 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    @Override
+    public void onLocationChanged(Location lastLocation) {
+        lat = lastLocation.getLatitude();
+        lng = lastLocation.getLongitude();
+
+        SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+        SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+        editor.putString("latitude_current", String.valueOf(lat));
+        editor.putString("longitude_current", String.valueOf(lng));
+        editor.apply();
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult arg0) {}
+
+    @Override
+    public void onConnectionSuspended(int cause) {}
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
+
+            if (lastLocation != null) {
+                lat = lastLocation.getLatitude();
+                lng = lastLocation.getLongitude();
+
+                SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
+                SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+                editor.putString("latitude_current", String.valueOf(lat));
+                editor.putString("longitude_current", String.valueOf(lng));
+                editor.apply();
+
+                ServiceIoT serviceIoT = new ServiceIoT();
+
+                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
+                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
+
+                if(latFixed == -500.0) {
+                    serviceIoT.setLat(lat);
+                    serviceIoT.setLng(lng);
+                }else {
+                    serviceIoT.setLat(latFixed);
+                    serviceIoT.setLng(lngFixed);
+                }
+                serviceIoT.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
+
+                getServices(serviceIoT);
+
+                locationRequest = LocationRequest.create();
+                locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+                locationRequest.setInterval(2000); //TODO mudar no app final
+                LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+            }
+        }
+    }
+
     /**
-     * Se {@code true}, então habilita a barra de progresso
+     * If {@code true}, enable the progress bar
      */
     public void setProgress(boolean progress) {
         if(progress)
@@ -354,7 +381,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * @param query A query é usada para filtrar os resultados da lista de categorias.
+     * @param query The query is used to filter the results of the category list.
      */
     public void executeFilter(String query) {
         handler.post(new Runnable() {
@@ -369,13 +396,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Recebe a lista de categorias e a query para filtrar.
-     * Itera pela lista e vai adicionando numa nova lista as categorias que contêm no nome
-     * a palavra 'query'.
+     * Receives list of categories and query to filter.
+     * Iterates by the list and is adding in a new list the categories that contain in the name
+     * the word 'query'.
      *
-     * @param models Lista de categorias.
-     * @param query A palavra para filtragem.
-     * @return Lista com as categorias filtradas.
+     * @param models Category list.
+     * @param query The word for filtering.
+     * @return List with filtered categories.
      */
     private ArrayList<String> filter(ArrayList<String> models, String query) {
         String lowerCaseQuery = query.toLowerCase();
@@ -391,9 +418,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor pela lista de categorias
+     * Method that will make the request to the server through the list of categories
      *
-     * @param serviceIoT Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param serviceIoT Object with the parameters to run the algorithm on the server.
      */
     private void getServices(ServiceIoT serviceIoT) {
         mSubscriptions.add(NetworkUtil.getRetrofit().getServices(serviceIoT)
@@ -403,10 +430,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com a lista de categorias
+     * Method that receives the response from the server with the list of categories
      *
      *
-     * @param response Objeto com a lista de categorias retornada pelo servidor.
+     * @param response Object with the list of categories returned by the server.
      */
     private void handleResponse(Response response) {
         adapter.clear();
@@ -420,9 +447,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking sem opção de analytics
+     * Method that will make the request to the server to run the matchmaking algorithm without analytics option
      *
-     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param objectServer Object with the parameters to run the algorithm on the server.
      */
     private void getSensorChosen(ObjectServer objectServer) {
         recyclerView.showProgress();
@@ -445,8 +472,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * The method used to register state in server of analytics user.
-     * @param usr The new location object.
+     * The method used to register state in server of analytics provider user.
+     * @param usr The analytics provider user.
      */
     private void registerAnalytics(User usr) {
 
@@ -456,6 +483,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
+    /**
+     * The method used to logout connectivity provider user.
+     */
     private void setMobileHubDisabled(ConnectPrice connectPrice) {
         User user = new User();
         user.setUuid(UUID.fromString(connectPrice.getUuid()));
@@ -465,6 +495,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         registerLocation(user);
     }
 
+    /**
+     * The method used to register state in server of connectivity provider user.
+     * @param usr The connectivity provier user.
+     */
     private void registerLocation(User usr) {
 
         mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
@@ -473,6 +507,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
+    /**
+     * Method that receives the response from the server
+     *
+     */
     private void handleResponseLostConnection(Response response) {
         ackConnection = false;
         ackAnalytics = false;
@@ -481,9 +519,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking com opção de analytics
+     * Method that will make the request to the server to run the matchmaking algorithm with analytics option
      *
-     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param objectServer Object with the parameters to run the algorithm on the server.
      */
     private void getSensorChosenAnalytics(ObjectServer objectServer) {
         recyclerView.showProgress();
@@ -494,10 +532,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     * Method that receives the response from the server with the set of services chosen
      *
      *
-     * @param response Objeto com o conjunto de serviços escolhidos.
+     * @param response Object with the set of services chosen.
      */
     private void handleSensorChosenAnalytics(Response response) {
         currentTimeAfter = Calendar.getInstance().getTimeInMillis();
@@ -560,10 +598,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     * Method that receives the response from the server with the set of services chosen
      *
      *
-     * @param response Objeto com o conjunto de serviços escolhidos.
+     * @param response Object with the set of services chosen.
      */
     private void handleSensorChosen(Response response) {
         currentTimeAfter = Calendar.getInstance().getTimeInMillis();
@@ -624,10 +662,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     * Method that receives the response from the server if an error has occurred
      *
-     *
-     * @param error Retorna objeto com o erro que ocorreu.
+     * @param error Returns object with the error that occurred.
      */
     private void handleError(Throwable error) {
         setProgress(false);
@@ -636,10 +673,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
-     * ao escolher uma categoria
+     * Metódo creates a pop-up dialog to ask the user if they want to include the analytics service
+     * when choosing a category
      *
-     * @param sensor Objeto com os parametros para mandar ao servidor.
+     * @param sensor Object with the parameters to send to the server.
      */
     private void createDialogAnalytics(ObjectServer sensor) {
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -687,7 +724,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused") // it's actually used to receive events from the Connection Service
     public void onEvent( String string ) {
         if(string != null){
             switch (string){
@@ -697,78 +734,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 case "c":
                     ackConnection = true;
                     break;
-            }
-        }
-    }
-
-    /**
-     * Método do sistema Android, chamado ao detectar mudança de localização pelo GPS
-     */
-    @Override
-    public void onLocationChanged(Location lastLocation) {
-        lat = lastLocation.getLatitude();
-        lng = lastLocation.getLongitude();
-
-        SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
-        SharedPreferences.Editor editor = mSharedPreferences.edit();
-
-        editor.putString("latitude_current", String.valueOf(lat));
-        editor.putString("longitude_current", String.valueOf(lng));
-        editor.apply();
-    }
-
-    /**
-     * Método do sistema Android, chamado ao detectar falha de localização do GPS
-     */
-    @Override
-    public void onConnectionFailed(ConnectionResult arg0) {}
-
-    /**
-     * Método do sistema Android, chamado ao detectar suspensão na chamada do GPS
-     */
-    @Override
-    public void onConnectionSuspended(int cause) {}
-
-    /**
-     * Método do sistema Android, chamado ao se conectar ao GPS
-     */
-    @Override
-    public void onConnected(Bundle bundle) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
-
-            if (lastLocation != null) {
-                lat = lastLocation.getLatitude();
-                lng = lastLocation.getLongitude();
-
-                SharedPreferences mSharedPreferences = getSharedPreferences( AppConfig.SHARED_PREF_FILE, MODE_PRIVATE );
-                SharedPreferences.Editor editor = mSharedPreferences.edit();
-
-                editor.putString("latitude_current", String.valueOf(lat));
-                editor.putString("longitude_current", String.valueOf(lng));
-                editor.apply();
-
-                ServiceIoT serviceIoT = new ServiceIoT();
-
-                Double latFixed = Double.parseDouble(mSharedPreferences.getString("latitude", "-500.0"));
-                Double lngFixed = Double.parseDouble(mSharedPreferences.getString("longitude", "-500.0"));
-
-                if(latFixed == -500.0) {
-                    serviceIoT.setLat(lat);
-                    serviceIoT.setLng(lng);
-                }else {
-                    serviceIoT.setLat(latFixed);
-                    serviceIoT.setLng(lngFixed);
-                }
-                serviceIoT.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
-
-                getServices(serviceIoT);
-
-                locationRequest = LocationRequest.create();
-                locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-                locationRequest.setInterval(2000); //TODO mudar no app final
-                LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
             }
         }
     }

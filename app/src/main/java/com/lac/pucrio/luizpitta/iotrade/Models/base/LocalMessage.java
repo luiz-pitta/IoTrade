@@ -35,22 +35,6 @@ public abstract class LocalMessage implements Serializable {
     protected static final String LATITUDE  = "latitude";
     protected static final String LONGITUDE = "longitude";
     protected static final String TIMESTAMP = "timestamp";
-    // LocationData
-    protected static final String DATE       = "date";
-    protected static final String ACCURACY   = "accuracy";
-    protected static final String PROVIDER   = "provider";
-    protected static final String SPEED      = "speed";
-    protected static final String BEARING    = "bearing";
-    protected static final String ALTITUDE   = "altitude";
-    protected static final String CONNECTION = "connection";
-    protected static final String BATTERY    = "battery";
-    protected static final String CHARGING   = "charging";
-    // SensorData
-    protected static final String SOURCE  = "source";
-    protected static final String SIGNAL  = "signal";
-    protected static final String ACTION  = "action";
-    protected static final String SERVICE = "sensor_name";
-    protected static final String VALUE   = "sensor_value";
     // EventData
     protected static final String LABEL = "label";
     protected static final String DATA  = "data";

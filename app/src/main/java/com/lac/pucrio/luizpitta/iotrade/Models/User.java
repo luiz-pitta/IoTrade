@@ -4,13 +4,14 @@ import java.io.Serializable;
 import java.util.UUID;
 
 /**
- * Modelo onde se armazena as do usuário
+ * Model where user's are stored
  *
  * @author Luiz Guilherme Pitta
  */
 public class User implements Serializable {
     private static final long serialVersionUID = 2L;
 
+    /** Attributes */
     private String name, device;
     private double batery;
     private int signal;
@@ -19,7 +20,9 @@ public class User implements Serializable {
     private UUID uuid;
     private boolean active = false;
     private double budget;
+    /** Attributes */
 
+    /** Getters */
     public double getBudget() {
         return budget;
     }
@@ -32,6 +35,28 @@ public class User implements Serializable {
         return name;
     }
 
+    public double getLat() {
+        return lat;
+    }
+
+    public double getLng() {
+        return lng;
+    }
+
+    public double getBatery() {
+        return batery;
+    }
+
+    public int getSignal() {
+        return signal;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+    /** Getters */
+
+    /** Setters */
     public void setUuid(UUID uuid) {
         this.uuid = uuid;
     }
@@ -44,15 +69,6 @@ public class User implements Serializable {
         this.device = device;
     }
 
-
-    public double getLat() {
-        return lat;
-    }
-
-    public double getLng() {
-        return lng;
-    }
-
     public void setLat(double lat) {
         this.lat = lat;
     }
@@ -61,16 +77,8 @@ public class User implements Serializable {
         this.lng = lng;
     }
 
-    public double getBatery() {
-        return batery;
-    }
-
     public void setBatery(double batery) {
         this.batery = batery;
-    }
-
-    public int getSignal() {
-        return signal;
     }
 
     public void setSignal(int signal) {
@@ -85,11 +93,8 @@ public class User implements Serializable {
         this.accuracy = accuracy;
     }
 
-    public boolean isActive() {
-        return active;
-    }
-
     public void setActive(boolean active) {
         this.active = active;
     }
+    /** Setters */
 }

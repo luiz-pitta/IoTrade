@@ -9,20 +9,16 @@ import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.R;
 
 /**
- * ViewHolder onde se controla os dados dos sensores
+ * ViewHolder where you control the analytics data
  *
  * @author Luiz Guilherme Pitta
  */
 public class AnalyticsPriceViewHolder extends BaseViewHolder<AnalyticsPrice> {
 
-    /**
-     * Componentes de interface
-     */
+    /** Attributes */
     private TextView text1, text2;
 
-    /**
-     * Classe Builder para construção da ViewHolder.
-     */
+    /** Constructor */
     public AnalyticsPriceViewHolder(ViewGroup parent) {
         super(parent, R.layout.list_item_analytics_price);
 
@@ -31,9 +27,6 @@ public class AnalyticsPriceViewHolder extends BaseViewHolder<AnalyticsPrice> {
     }
 
 
-    /**
-     * Método do sistema Android, chamado para setar os dados da linha da RecyclerView
-     */
     @Override
     public void setData(AnalyticsPrice analyticsPrice) {
         text1.setText(analyticsPrice.getTitle());

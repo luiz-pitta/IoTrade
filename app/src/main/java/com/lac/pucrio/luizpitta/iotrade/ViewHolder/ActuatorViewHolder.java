@@ -8,30 +8,22 @@ import com.lac.pucrio.luizpitta.iotrade.Models.SensorPrice;
 import com.lac.pucrio.luizpitta.iotrade.R;
 
 /**
- * ViewHolder onde se controla os dados dos sensores
+ * ViewHolder where you control the actuator data
  *
  * @author Luiz Guilherme Pitta
  */
 public class ActuatorViewHolder extends BaseViewHolder<String> {
 
-    /**
-     * Componentes de interface
-     */
+    /** Attributes */
     private TextView text1;
 
-    /**
-     * Classe Builder para construção da ViewHolder.
-     */
+    /** Constructor */
     public ActuatorViewHolder(ViewGroup parent) {
         super(parent, R.layout.list_item_service_iot);
 
         text1 = $(R.id.text1);
     }
 
-
-    /**
-     * Método do sistema Android, chamado para setar os dados da linha da RecyclerView
-     */
     @Override
     public void setData(String string) {
         text1.setText(string);

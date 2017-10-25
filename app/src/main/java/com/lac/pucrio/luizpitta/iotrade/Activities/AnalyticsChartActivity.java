@@ -38,18 +38,18 @@ import lecho.lib.hellocharts.view.LineChartView;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Classe Menu da aplicação, onde o usuário seleciona os parêmetros de sua conta na aplicação
- * que irão influenciar no algoritmo de marchmaking.
+ * Class that receives the data from analytics provider and plot into a chart
  *
  * @author Luiz Guilherme Pitta
  */
-public class AnalyticsChartActivity extends AppCompatActivity implements View.OnClickListener {
+public class AnalyticsChartActivity extends AppCompatActivity {
 
     /**
-     * Componentes de interface
+     * Interface Components
      */
     private TextView title;
 
+    /** Attributes */
     private LineChartView chart;
     private LineChartData data;
     private int numberOfLines = 1;
@@ -72,9 +72,6 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
 
     private float bottom, top, left, right;
 
-    /**
-     * Variáveis
-     */
     private CompositeSubscription mSubscriptions;
     private BroadcastReceiver mMessageReceiverFinish = new BroadcastReceiver() {
         @Override
@@ -82,10 +79,8 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
             finish();
         }
     };
+    /** Attributes */
 
-    /**
-     * Método do sistema Android, chamado ao criar a Activity
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,6 +119,49 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
         finish();
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSubscriptions.unsubscribe();
+
+        EventBus.getDefault().unregister( this );
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
+    /**
+     * Methods that initializes the chart
+     *
+     */
+    private void resetViewport() {
+        // Reset viewport height range to (0,100)
+        final Viewport v = new Viewport(chart.getMaximumViewport());
+        v.bottom = 0;
+        v.top = 100;
+        v.left = 0;
+        v.right = numberOfPoints - 1;
+        chart.setMaximumViewport(v);
+        chart.setCurrentViewport(v);
+    }
+
+    private void setViewport() {
+        // Reset viewport height range to (0,100)
+        final Viewport v = new Viewport(chart.getMaximumViewport());
+        v.bottom = bottom;
+        v.top = top;
+        v.left = left;
+        v.right = right;
+        chart.setMaximumViewport(v);
+        chart.setCurrentViewport(v);
+    }
+
+    /**
+     * Methods that receive and generate converts data to put into the chart
+     *
+     */
     private void generateValues(ArrayList<Double[]> listData) {
         numberOfPoints = listData.size();
         for (int i = 0; i < numberOfLines; i++) {
@@ -181,41 +219,8 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
 
     }
 
-    private void resetViewport() {
-        // Reset viewport height range to (0,100)
-        final Viewport v = new Viewport(chart.getMaximumViewport());
-        v.bottom = 0;
-        v.top = 100;
-        v.left = 0;
-        v.right = numberOfPoints - 1;
-        chart.setMaximumViewport(v);
-        chart.setCurrentViewport(v);
-    }
-
-    private void setViewport() {
-        // Reset viewport height range to (0,100)
-        final Viewport v = new Viewport(chart.getMaximumViewport());
-        v.bottom = bottom;
-        v.top = top;
-        v.left = left;
-        v.right = right;
-        chart.setMaximumViewport(v);
-        chart.setCurrentViewport(v);
-    }
-
-    /**
-     * Método do sistema Android, chamado ao destruir a Activity
-     */
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mSubscriptions.unsubscribe();
-
-        EventBus.getDefault().unregister( this );
-    }
-
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")     // it's actually used to receive events from the Connection Service
     public void onEvent( SendSensorData sendSensorData ) {
         if( sendSensorData != null && sendSensorData.getListData() != null ) {
             ArrayList<Double[]> listData = sendSensorData.getListData();
@@ -227,6 +232,10 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
         }
     }
 
+    /**
+     * Method that finds the edges in the chart
+     *
+     */
     private void findEdgesChart(ArrayList<Double[]> listData){
         ArrayList<Double> minMax = findMaxMin(listData);
         left = 0;
@@ -236,6 +245,10 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
         setViewport();
     }
 
+    /**
+     * Method that finds max and min values
+     *
+     */
     private ArrayList<Double> findMaxMin(ArrayList<Double[]> listData) {
         ArrayList<Double> minMax = new ArrayList<>();
         double max = Double.NEGATIVE_INFINITY;
@@ -255,34 +268,10 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
         return minMax;
     }
 
-    /**
-     * Método do sistema Android, chamado ao ter interação do usuário com algum elemento de interface
-     * @see View
-     */
-    @Override
-    public void onClick(View view) {
-
-    }
 
     /**
-     * Método do sistema Android, guarda o estado da aplicação para não ser destruido
-     * pelo gerenciador de memória do sistema
+     * Chart TouchListener
      */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    /**
-     * Se {@code true}, então habilita a barra de progresso
-     */
-    public void setProgress(boolean progress) {
-        if(progress)
-            findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
-        else
-            findViewById(R.id.progressBox).setVisibility(View.GONE);
-    }
-
     private class ValueTouchListener implements LineChartOnValueSelectListener {
 
         @Override
@@ -292,7 +281,6 @@ public class AnalyticsChartActivity extends AppCompatActivity implements View.On
 
         @Override
         public void onValueDeselected() {
-            // TODO Auto-generated method stub
 
         }
 
