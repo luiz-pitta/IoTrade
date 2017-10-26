@@ -55,6 +55,7 @@ import com.lac.pucrio.luizpitta.iotrade.Network.NetworkUtil;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
+import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
 import org.greenrobot.eventbus.EventBus;
@@ -102,7 +103,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String selectedCategory = "";
     private boolean ackConnection = false, ackAnalytics = false;
     private boolean connectionDisabled = false, analyticsDisabled = false;
-    private final static long ACK_TIMEOUT = 750; // Seconds x Milliseconds
 
     /**
      * Listener that is called to the user to type some character in the search field
@@ -183,8 +183,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if(!selectedCategory.contains("Atuar"))
                     createDialogAnalytics(filter);
-                else
+                else {
+                    setProgress(true);
                     getSensorChosen(filter);
+                }
             }
         });
 
@@ -247,6 +249,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onResume() {
         super.onResume();
+
+        if (AppUtils.isMyServiceRunning(this, ConnectionService.class.getName()))
+            onButton.setText(getResources().getString(R.string.off));
+        else
+            onButton.setText(getResources().getString(R.string.on));
+
 
         if (googleApiClient == null)
             googleApiClient = new GoogleApiClient.Builder(this, this, this).addApi(LocationServices.API).build();
@@ -374,10 +382,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * If {@code true}, enable the progress bar
      */
     public void setProgress(boolean progress) {
-        if(progress)
+        if(progress) {
+            findViewById(R.id.progressBox).bringToFront();
+            findViewById(R.id.progressBox).invalidate();
             findViewById(R.id.progressBox).setVisibility(View.VISIBLE);
-        else
+        }
+        else {
             findViewById(R.id.progressBox).setVisibility(View.GONE);
+            findViewById(R.id.progressBox).invalidate();
+        }
     }
 
     /**
@@ -423,7 +436,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param serviceIoT Object with the parameters to run the algorithm on the server.
      */
     private void getServices(ServiceIoT serviceIoT) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getServices(serviceIoT)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getServices(serviceIoT)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponse,this::handleError));
@@ -453,7 +466,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void getSensorChosen(ObjectServer objectServer) {
         recyclerView.showProgress();
-        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithm(objectServer)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getSensorAlgorithm(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosen,this::handleError));
@@ -477,7 +490,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void registerAnalytics(User usr) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().setAnalyticsMobileHub(usr)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).setAnalyticsMobileHub(usr)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseLostConnection,this::handleError));
@@ -501,7 +514,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void registerLocation(User usr) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).setLocationMobileHub(usr)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseLostConnection,this::handleError));
@@ -525,7 +538,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void getSensorChosenAnalytics(ObjectServer objectServer) {
         recyclerView.showProgress();
-        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithmAnalytics(objectServer)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getSensorAlgorithmAnalytics(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosenAnalytics,this::handleError));
@@ -552,7 +565,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             MatchmakingData msg = new MatchmakingData();
             msg.setUuidClient(response.getAnalytics().getUuid());
-            msg.setUuidAnalyticsClient(AppUtils.getUuid(this).toString());
+            msg.setUuidAnalyticsClient(AppUtils.getUuid(MainActivity.this).toString());
             msg.setUuidMatch(response.getConnect().getUuid());
             msg.setMacAddress(response.getSensor().getMacAdress());
             msg.setUuidData(response.getSensor().getUuidData());
@@ -563,6 +576,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             msg.setPriority(LocalMessage.HIGH);
 
             EventBus.getDefault().post(msg);
+
             intent = new Intent(this, AnalyticsActivity.class);
             intent.putExtra("category", selectedCategory);
             intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
@@ -575,10 +589,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if(ackAnalytics && ackConnection) {
                         ackConnection = false;
                         ackAnalytics = false;
+
+                        setProgress(false);
+
                         startActivity(intent);
                     }
                     else {
                         Toast.makeText(MainActivity.this, getResources().getString(R.string.try_again), Toast.LENGTH_LONG).show();
+
+                        setProgress(false);
 
                         if(!ackAnalytics)
                             setAnalyticsHubDisabled(response.getAnalytics());
@@ -588,7 +607,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                 }
-            }, ACK_TIMEOUT);
+            }, Constants.ACK_TIMEOUT_MAIN);
 
         }
         else
@@ -644,16 +663,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void run() {
                     if(ackConnection) {
                         ackConnection = false;
+
+                        setProgress(false);
                         startActivity(intent);
                     }
                     else {
                         Toast.makeText(MainActivity.this, getResources().getString(R.string.try_again), Toast.LENGTH_LONG).show();
+
+                        setProgress(false);
                         setMobileHubDisabled(response.getConnect());
                     }
 
 
                 }
-            }, ACK_TIMEOUT);
+            }, Constants.ACK_TIMEOUT_MAIN);
         }
         else
             Toast.makeText(this, getResources().getString(R.string.no_sensors_available), Toast.LENGTH_LONG).show();
@@ -705,6 +728,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonText1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                setProgress(true);
                 currentTime = Calendar.getInstance().getTimeInMillis();
                 getSensorChosen(sensor);
                 dialog.dismiss();
@@ -714,6 +738,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonText2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                setProgress(true);
                 currentTime = Calendar.getInstance().getTimeInMillis();
                 getSensorChosenAnalytics(sensor);
                 dialog.dismiss();

@@ -19,6 +19,10 @@
     <string name="confirm">Confirmar</string>
     <string name="category">Categoria</string>
     <string name="price_max">Preço Máximo</string>
+    <string name="config_pref_category_gateway">Gateway Parameters</string>
+    <string name="config_pref_gateway_ip">IP</string>
+    <string name="config_pref_gateway_port">Porta Gateway</string>
+    <string name="config_pref_server_port">Porta Servidor</string>
     <string name="radius">Raio Máximo (metros)</string>
     <string name="price">Preço</string>
     <string name="total">Custo: </string>

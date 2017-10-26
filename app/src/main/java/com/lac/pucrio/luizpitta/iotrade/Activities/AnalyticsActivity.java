@@ -46,6 +46,7 @@ import com.lac.pucrio.luizpitta.iotrade.R;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
+import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
 import org.greenrobot.eventbus.EventBus;
@@ -93,7 +94,6 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     private long currentTime, currentTimeAfter, diff, lastTimeData;
     private Double value_analytics = null;
     private int position_analytics = -1;
-    private final static long ACK_TIMEOUT = 750; // Seconds x Milliseconds
     private Handler handler = new Handler();
 
     @Override
@@ -231,7 +231,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Se {@code true}, então habilita a barra de progresso
+     * If {@code true}, enable the progress bar
      */
     public void setProgress(boolean progress) {
         if(progress)
@@ -240,6 +240,9 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
             findViewById(R.id.progressBox).setVisibility(View.GONE);
     }
 
+    /**
+     * Thread used to calculate time that has passed and detect connection loss.
+     */
     private void runThreadTimeElapsed() {
 
 
@@ -265,7 +268,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
                                 time.setText(timeElapsed);
 
                                 long lastTimeDiff = (System.currentTimeMillis() - lastTimeData)/1000;
-                                if(lastTimeDiff >= (intervalDisconnection*1.2) && !lostConnection && clicked) {
+                                if(lastTimeDiff >= (intervalDisconnection* Constants.FACTOR) && !lostConnection && clicked) {
                                     lostConnection = true;
 
                                     MatchmakingData msg = new MatchmakingData();
@@ -292,7 +295,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
                                             if(!ackConnection)
                                                 setMobileHubDisabled();
                                         }
-                                    }, ACK_TIMEOUT);
+                                    }, Constants.ACK_TIMEOUT);
                                 }
                             }
                         });
@@ -305,6 +308,9 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         }.start();
     }
 
+    /**
+     * Thread used to calculate the price that the user has to pay.
+     */
     private void runThread() {
 
 
@@ -368,12 +374,15 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
      */
     private void registerAnalytics(User usr) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().setAnalyticsMobileHub(usr)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).setAnalyticsMobileHub(usr)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
+    /**
+     * The method used to logout connectivity provider user.
+     */
     private void setMobileHubDisabled() {
         User user = new User();
         user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
@@ -383,14 +392,21 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         registerLocation(user);
     }
 
+    /**
+     * The method used to register state in server of connectivity provider user.
+     * @param usr The connectivity provier user.
+     */
     private void registerLocation(User usr) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).setLocationMobileHub(usr)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
+    /**
+     * The method used to stop Analytics Service.
+     */
     private void stopAnalyticsService(){
         keepRunning = false;
 
@@ -417,9 +433,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
-     * ao escolher uma categoria
-     *
+     * The method used to close the activity and finish the Analytics Service.
      */
     private void finishAnalyticsNoMatch() {
         Intent intent = new Intent("finish_no_match");
@@ -429,60 +443,59 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
+     * Method that will make the request to the server to update parameters of the services chosen by the algorithm
      *
-     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param response Object with the parameters to run the algorithm on the server.
      */
     private void updateSensorInformation(Response response) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).updateSensorRating(response)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseUpdate,this::handleError));
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
+     * Method that will make the request to the server to update the cost of the mobile hub
      *
-     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param connectPrice Object with the parameters to run the algorithm on the server.
      */
     private void getConnectPrice(ConnectPrice connectPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getConnectPrice(connectPrice)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponse,this::handleError));
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking com opção de analytics
+     * Method that will make the request to the server to run the matchmaking algorithm with analytics option
      *
-     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param objectServer Object with the parameters to run the algorithm on the server.
      */
     private void getSensorChosenAnalytics(ObjectServer objectServer) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithmAnalytics(objectServer)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getSensorAlgorithmAnalytics(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosenAnalytics,this::handleError));
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking com opção de analytics
+     * Method that will make the request to the server to run the matchmaking algorithm to choose a analytics provider
      *
-     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param objectServer Object with the parameters to run the algorithm on the server.
      */
     private void getChosenAnalytics(ObjectServer objectServer) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().getNewAnalytics(objectServer)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getNewAnalytics(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleChosenAnalytics,this::handleError));
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     * Method that receives the response from the server with the set of services chosen
      *
-     *
-     * @param response Objeto com o conjunto de serviços escolhidos.
+     * @param response Object with the set of services chosen.
      */
     private void handleChosenAnalytics(Response response) {
         AnalyticsPrice analyticsPrice = response.getAnalytics();
@@ -524,10 +537,9 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     * Method that receives the response from the server with the set of services chosen
      *
-     *
-     * @param response Objeto com o conjunto de serviços escolhidos.
+     * @param response Object with the set of services chosen.
      */
     private void handleSensorChosenAnalytics(Response response) {
         currentTimeAfter = Calendar.getInstance().getTimeInMillis();
@@ -580,6 +592,10 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
         }
     }
 
+    /**
+     * Method that receives the response from the server if everything has run correctly
+     * and starts a new matchmaking
+     */
     private void handleResponseLostConnection(Response response) {
         switch (response.getMessage()){
             case "CON":
@@ -661,10 +677,9 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com as informações atualizadas
+     * Method that receives the server response with updated information
      *
-     *
-     * @param response Objeto com o usuário retornado pelo servidor.
+     * @param response Object with the provider returned by the server.
      */
     private void handleResponse(Response response) {
         currentPrice = response.getPrice();
@@ -672,20 +687,17 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     * Method that receives the response from the server if everything has run correctly
      *
-     *
-     * @param response Retorna mensagem que rodou corretamente.
      */
     private void handleResponseUpdate(Response response) {
         Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
     }
 
     /**
-     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     * Method that receives the response from the server if an error has occurred.
      *
-     *
-     * @param error Retorna objeto com o erro que ocorreu.
+     * @param error Returns object with the error that occurred.
      */
     private void handleError(Throwable error) {
         setProgress(false);
@@ -693,12 +705,12 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
-     * ao escolher uma categoria
+     * Metódo creates a pop-up dialog to ask the user if they want to include the analytics service
+     * when choosing a category
      *
-     * @param sensorPrice Objeto com as informações do Sensor.
-     * @param connectPrice Objeto com as informações do serviço de Analytics.
-     * @param analyticsPrice Objeto com as informações do serviço de Analytics.
+     * @param sensorPrice Object with Sensor information.
+         * @param connectPrice Object with information from the Analytics service.
+         * @param analyticsPrice Object with information from the Analytics service.
      */
     private void createDialogRating(SensorPrice sensorPrice, ConnectPrice connectPrice, AnalyticsPrice analyticsPrice) {
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -799,7 +811,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário qual valor que irá aparecer um alerta
+     * Method creates a pop-up dialog to ask the user what value an alert will appear
      */
     private void createDialogAlert() {
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -866,7 +878,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused") // it's actually used to receive events from the Connection Service
     public void onEvent( String string ) {
         if(string != null){
             switch (string){
@@ -881,7 +893,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused") // it's actually used to receive events from the Connection Service
     public void onEvent( SendSensorData sendSensorData ) {
         if( sendSensorData != null && (sendSensorData.getData() == null && sendSensorData.getListData() == null)) {
             if(sendSensorData.getSource() == SendSensorData.MOBILE_HUB) {

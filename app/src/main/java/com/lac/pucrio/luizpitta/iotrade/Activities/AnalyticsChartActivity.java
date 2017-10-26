@@ -238,10 +238,11 @@ public class AnalyticsChartActivity extends AppCompatActivity {
      */
     private void findEdgesChart(ArrayList<Double[]> listData){
         ArrayList<Double> minMax = findMaxMin(listData);
-        left = 0;
-        right = listData.size() + 2;
-        top = minMax.get(0).floatValue() + 5;
-        bottom = minMax.get(1).floatValue() - 5;
+        left = -0.5f;
+        right = listData.size() + listData.size()*0.2f;
+        top = minMax.get(1).floatValue() + minMax.get(1).floatValue()*0.2f;
+        bottom = minMax.get(0).floatValue() - minMax.get(0).floatValue()*0.2f;
+
         setViewport();
     }
 

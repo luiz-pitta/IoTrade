@@ -40,7 +40,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     /**
      *  Interface Components
      */
-    private EditText value, radius;
+    private EditText value, radius, ipConfig, portConfig, portServerConfig;
     private TextView confirmationButton, locationText, cleanText;
 
     private static final int PLACE_PICKER_REQUEST = 1020;
@@ -57,6 +57,9 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_menu);
 
         value = (EditText) findViewById(R.id.value);
+        ipConfig = (EditText) findViewById(R.id.ipConfig);
+        portConfig = (EditText) findViewById(R.id.portConfig);
+        portServerConfig = (EditText) findViewById(R.id.portServerConfig);
         confirmationButton = (TextView) findViewById(R.id.confirmationButton);
         locationText = (TextView) findViewById(R.id.locationText);
         cleanText = (TextView) findViewById(R.id.cleanText);
@@ -73,6 +76,10 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
         getUserInformation();
 
         builder = new PlacePicker.IntentBuilder();
+
+        ipConfig.setText(AppUtils.getIpAddress(this));
+        portConfig.setText(AppUtils.getGatewayPort(this).toString());
+        portServerConfig.setText(AppUtils.getServerPort(this).toString());
 
         try {
             placePicker = builder.build(this);
@@ -93,6 +100,10 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View view) {
         if(view == confirmationButton)
         {
+            AppUtils.saveIpAddress(MenuActivity.this, ipConfig.getText().toString());
+            AppUtils.saveGatewayPort(MenuActivity.this, Integer.valueOf(portConfig.getText().toString()));
+            AppUtils.saveServerPort(MenuActivity.this, Integer.valueOf(portServerConfig.getText().toString()));
+
             SensorPrice sensorPrice = new SensorPrice();
             sensorPrice.setPrice(Double.valueOf(value.getText().toString()));
             updateUserBudget(sensorPrice);
@@ -156,7 +167,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void updateUserBudget(SensorPrice sensorPrice) {
         setProgress(true);
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateUserBudget(sensorPrice)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).updateUserBudget(sensorPrice)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseUpdate,this::handleError));
@@ -177,7 +188,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void getUserInformation() {
         setProgress(true);
-        mSubscriptions.add(NetworkUtil.getRetrofit().getUser()
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getUser()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponse,this::handleError));
@@ -206,7 +217,7 @@ public class MenuActivity extends AppCompatActivity implements View.OnClickListe
         else
             locationText.setText(null);
 
-        radius.setText(String.valueOf(mSharedPreferences.getFloat("radius", 1.5f)));
+        radius.setText(String.valueOf(mSharedPreferences.getFloat("radius", 1.5f)*1000));
 
 
 

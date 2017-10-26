@@ -32,6 +32,7 @@ import com.lac.pucrio.luizpitta.iotrade.R;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
+import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Utilities;
 
 import org.greenrobot.eventbus.EventBus;
@@ -148,6 +149,9 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         super.onSaveInstanceState(outState);
     }
 
+    /**
+     * Thread used to calculate time that has passed and detect connection loss.
+     */
     private void runThreadTimeElapsed() {
 
 
@@ -173,7 +177,7 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
                                 time.setText(timeElapsed);
 
                                 long lastTimeDiff = (System.currentTimeMillis() - lastTimeData)/1000;
-                                if(lastTimeDiff >= (intervalDisconnection*1.2) && !lostConnection) {
+                                if(lastTimeDiff >= (intervalDisconnection* Constants.FACTOR) && !lostConnection) {
                                     lostConnection = true;
                                     setMobileHubDisabled();
                                 }
@@ -188,6 +192,9 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         }.start();
     }
 
+    /**
+     * Thread used to calculate the price that the user has to pay.
+     */
     private void runThread() {
 
 
@@ -235,7 +242,7 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Se {@code true}, então habilita a barra de progresso
+     * If {@code true}, enable the progress bar
      */
     public void setProgress(boolean progress) {
         if(progress)
@@ -244,6 +251,9 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
             findViewById(R.id.progressBox).setVisibility(View.GONE);
     }
 
+    /**
+     * The method used to logout connectivity provider user.
+     */
     private void setMobileHubDisabled() {
         User user = new User();
         user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
@@ -253,14 +263,22 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         registerLocation(user);
     }
 
+    /**
+     * The method used to register state in server of connectivity provider user.
+     * @param usr The connectivity provier user.
+     */
     private void registerLocation(User usr) {
 
-        mSubscriptions.add(NetworkUtil.getRetrofit().setLocationMobileHub(usr)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).setLocationMobileHub(usr)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseLostConnection,this::handleError));
     }
 
+    /**
+     * Method that will redo matchmaking due to connection loss
+     *
+     */
     private void doMatchmaking(){
         currentTime = Calendar.getInstance().getTimeInMillis();
 
@@ -290,46 +308,44 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar parametros dos serviços escolhidos pelo algoritmo
+     * Method that will make the request to the server to update parameters of the services chosen by the algorithm
      *
-     * @param response Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param response Object with the parameters to run the algorithm on the server.
      */
     private void updateSensorInformation(Response response) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorRating(response)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).updateSensorRating(response)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseUpdate,this::handleError));
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para rodar o algoritmo de matchmaking sem opção de analytics
+     * Method that will make the request to the server to run the matchmaking algorithm without analytics option
      *
-     * @param objectServer Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param objectServer Object with the parameters to run the algorithm on the server.
      */
     private void getSensorChosen(ObjectServer objectServer) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorAlgorithm(objectServer)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getSensorAlgorithm(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosen,this::handleError));
     }
 
     /**
-     * Metódo que irá fazer a requisição ao servidor para atualizar o custo do mobile hub
+     * Method that will make the request to the server to update the cost of the mobile hub
      *
-     * @param connectPrice Objeto com os parametros para rodar o algoritmo no servidor.
+     * @param connectPrice Object with the parameters to run the algorithm on the server.
      */
     private void getConnectPrice(ConnectPrice connectPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getConnectPrice(connectPrice)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getConnectPrice(connectPrice)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponsePrice,this::handleError));
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com as informações atualizadas
+     * Method that receives the server response with updated information
      *
-     *
-     * @param response Objeto com o usuário retornado pelo servidor.
      */
     private void handleResponsePrice(Response response) {
         currentPrice = response.getPrice();
@@ -337,10 +353,9 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Metódo que recebe a resposta do servidor com o conjunto de serviços escolhidos
+     * Method that receives the response from the server with the set of services chosen
      *
-     *
-     * @param response Objeto com o conjunto de serviços escolhidos.
+     * @param response Object with the set of services chosen.
      */
     private void handleSensorChosen(Response response) {
         currentTimeAfter = Calendar.getInstance().getTimeInMillis();
@@ -380,24 +395,25 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Metódo que recebe a resposta do servidor se tudo rodou corretamente
+     * Method that receives the response from the server if everything has run correctly
      *
-     *
-     * @param response Retorna mensagem que rodou corretamente.
      */
     private void handleResponseUpdate(Response response) {
         Toast.makeText(this, response.getMessage(), Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * Method that receives the response from the server if everything has run correctly
+     * and starts a new matchmaking
+     */
     private void handleResponseLostConnection(Response response) {
         doMatchmaking();
     }
 
     /**
-     * Metódo que recebe a resposta do servidor caso tenha ocorrido um erro
+     * Method that receives the response from the server if an error has occurred.
      *
-     *
-     * @param error Retorna objeto com o erro que ocorreu.
+     * @param error Returns object with the error that occurred.
      */
     private void handleError(Throwable error) {
         setProgress(false);
@@ -405,12 +421,12 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /**
-     * Metódo cria um diálogo pop-up para perguntar ao usuário se deseja incluir o serviço do analytics
-     * ao escolher uma categoria
+     * Method creates a pop-up dialog to ask the user if they want to include the analytics service
+     * when choosing a category
      *
-     * @param sensorPrice Objeto com as informações do Sensor.
-     * @param connectPrice Objeto com as informações do serviço de Analytics.
-     * @param analyticsPrice Objeto com as informações do serviço de Analytics.
+     * @param sensorPrice Object with Sensor information.
+     * @param connectPrice Object with information from the Analytics service.
+     * @param analyticsPrice Object with information from the Analytics service.
      */
     private void createDialogRating(SensorPrice sensorPrice, ConnectPrice connectPrice, AnalyticsPrice analyticsPrice) {
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -511,7 +527,7 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")     // it's actually used to receive events from the Connection Service
     public void onEvent( SendSensorData sendSensorData ) {
         if( sendSensorData != null && sendSensorData.getData() != null) {
             Double[] sensorData = sendSensorData.getData();

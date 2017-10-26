@@ -1,5 +1,8 @@
 package com.lac.pucrio.luizpitta.iotrade.Network;
 
+import android.content.Context;
+
+import com.lac.pucrio.luizpitta.iotrade.Utils.AppUtils;
 import com.lac.pucrio.luizpitta.iotrade.Utils.Constants;
 
 import retrofit2.Retrofit;
@@ -13,12 +16,14 @@ import rx.schedulers.Schedulers;
  */
 public class NetworkUtil {
 
-    public static RetrofitInterface getRetrofit(){
+    public static RetrofitInterface getRetrofit(Context c){
 
         RxJavaCallAdapterFactory rxAdapter = RxJavaCallAdapterFactory.createWithScheduler(Schedulers.io());
 
+        String baseUrl = "http://" + AppUtils.getIpAddress(c) + ":" + AppUtils.getServerPort(c) + "/api/v1/";
+
         return new Retrofit.Builder()
-                .baseUrl(Constants.BASE_URL)
+                .baseUrl(baseUrl)
                 .addCallAdapterFactory(rxAdapter)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build().create(RetrofitInterface.class);

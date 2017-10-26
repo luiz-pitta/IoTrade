@@ -193,6 +193,25 @@ public class AppUtils {
 		}
 		return false;
 	}
+
+	/**
+	 * It saves the port of the gateway to the Shared Preferences.
+	 *
+	 * @param c The Context of the Android system.
+	 * @param n The gateway port.
+	 * @return true  If it is a valid port and it was saved.
+	 *         false It is not a valid port and it was not saved.
+	 */
+	public static Boolean saveServerPort (Context c, Integer n) {
+		if( isValidPort( n.toString() ) ) {
+			SharedPreferences config = getSPrefConfig( c );
+			SharedPreferences.Editor writer = config.edit();
+			writer.putString( AppConfig.SPREF_SERVER_PORT, n.toString() );
+
+			return writer.commit();
+		}
+		return false;
+	}
 	
 	/**
 	 * It gets the gateway port.
@@ -205,6 +224,22 @@ public class AppUtils {
 		SharedPreferences config = getSPrefConfig( c );
 		String port = config.getString( AppConfig.SPREF_GATEWAY_PORT, AppConfig.DEFAULT_SDDL_PORT + "" );
 		
+		if( !isNumber( port ) || port.equals( "" ) )
+			return null;
+		return Integer.parseInt( port );
+	}
+
+	/**
+	 * It gets the gateway port.
+	 *
+	 * @param c The Context of the Android system.
+	 * @return Integer It returns the gateway port as an Integer.
+	 *         null    It has no value saved or an invalid port.
+	 */
+	public static Integer getServerPort(Context c) {
+		SharedPreferences config = getSPrefConfig( c );
+		String port = config.getString( AppConfig.SPREF_SERVER_PORT, AppConfig.DEFAULT_SERVER_PORT + "" );
+
 		if( !isNumber( port ) || port.equals( "" ) )
 			return null;
 		return Integer.parseInt( port );

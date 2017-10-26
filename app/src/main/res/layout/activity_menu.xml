@@ -21,10 +21,112 @@
             android:lines="1"
             android:paddingLeft="20dp"
             android:paddingRight="20dp"
-            android:text="@string/price_max"
+            android:text="@string/config_pref_gateway_ip"
             android:textAllCaps="true"
             android:textColor="@color/grey_500"
             android:textSize="12sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/horizontal_line_height"
+            android:background="@color/horizontal_line" />
+
+        <EditText
+            android:id="@+id/ipConfig"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:inputType="text"
+            android:paddingBottom="10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp"
+            android:textColor="@color/grey_700"
+            android:textColorHint="@color/grey_700"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            android:ellipsize="end"
+            android:lines="1"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:text="@string/config_pref_gateway_port"
+            android:textAllCaps="true"
+            android:textColor="@color/grey_500"
+            android:textSize="12sp"
+            android:layout_marginTop="10dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/horizontal_line_height"
+            android:background="@color/horizontal_line" />
+
+        <EditText
+            android:id="@+id/portConfig"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:inputType="number"
+            android:paddingBottom="10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp"
+            android:textColor="@color/grey_700"
+            android:textColorHint="@color/grey_700"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            android:ellipsize="end"
+            android:lines="1"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:text="@string/config_pref_server_port"
+            android:textAllCaps="true"
+            android:textColor="@color/grey_500"
+            android:textSize="12sp"
+            android:layout_marginTop="10dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/horizontal_line_height"
+            android:background="@color/horizontal_line" />
+
+        <EditText
+            android:id="@+id/portServerConfig"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:inputType="number"
+            android:paddingBottom="10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp"
+            android:textColor="@color/grey_700"
+            android:textColorHint="@color/grey_700"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            android:ellipsize="end"
+            android:lines="1"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:text="@string/price_max"
+            android:textAllCaps="true"
+            android:textColor="@color/grey_500"
+            android:textSize="12sp"
+            android:layout_marginTop="10dp"/>
 
         <View
             android:layout_width="match_parent"

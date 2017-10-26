@@ -6,7 +6,9 @@ import android.content.Intent;
 import android.os.IBinder;
 
 import com.infopae.model.BuyAnalyticsData;
+import com.infopae.model.SendAcknowledge;
 import com.infopae.model.SendActuatorData;
+import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
 import com.lac.pucrio.luizpitta.iotrade.Models.locals.MatchmakingData;
 import com.lac.pucrio.luizpitta.iotrade.Services.Listeners.ConnectionListener;
 import com.lac.pucrio.luizpitta.iotrade.Utils.AppConfig;
@@ -27,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lac.cnclib.net.NodeConnection;
 import lac.cnclib.net.mrudp.MrUdpNodeConnection;
 import lac.cnclib.sddl.message.ApplicationMessage;
+import lac.cnclib.sddl.message.ClientLibProtocol.PayloadSerialization;
 import lac.cnclib.sddl.message.Message;
 
 public class ConnectionService extends Service {
@@ -250,12 +253,67 @@ public class ConnectionService extends Service {
 	}
 
 	/**
+	 * Creates an application message to send to the cloud in JSON
+	 * It includes the current location if exists to the message
+	 * Depending on the priority it will send the message immediately
+	 * or group it to be sent in an interval of time
+	 * @param s The Mobile Hub Message structure
+	 * @param sender The UUID of the Mobile Hub
+	 */
+	private void createAndQueueJsonMsg(LocalMessage s, UUID sender) {
+		s.setUuid( sender.toString() );
+
+		try {
+			ApplicationMessage am = new ApplicationMessage();
+			am.setPayloadType( PayloadSerialization.JSON );
+			am.setContentObject( s.toJSON() );
+			am.setTagList( new ArrayList<String>() );
+			am.setSenderID( sender );
+
+			if( s.getPriority().equals( LocalMessage.HIGH ) ) {
+				connection.sendMessage( am );
+			} else {
+				synchronized( lstMsg ) {
+					lstMsg.put( s.getID(), am );
+					//lstMsg.add( am );
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Creates an application message to send to the cloud
+	 * It includes the current location if exists to the message
+	 * Depending on the priority it will send the message immediately
+	 * or group it to be sent in an interval of time
+	 * @param s The Mobile Hub Message structure
+	 * @param sender The UUID of the Mobile Hub
+	 */
+	private void createAndQueueMsg(Serializable s, UUID sender) {
+		try {
+			ApplicationMessage am = new ApplicationMessage();
+			am.setContentObject( s );
+			am.setTagList( new ArrayList<String>() );
+			am.setSenderID( sender );
+
+			synchronized( lstMsg ) {
+				lstMsg.put( s.toString(), am );
+				//lstMsg.add( am );
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
 	 * Creates an application message to send to the cloud
 	 * It will send the message immediately
 	 * @param s The Mobile Hub Message structure
 	 * @param sender The UUID of the Mobile Hub
 	 */
-	private void createAndSendMsg(Serializable s, UUID sender) {
+	private void createAndSendStringMsg(String s, UUID sender) {
 
 		try {
 			ApplicationMessage am = new ApplicationMessage();
@@ -269,24 +327,53 @@ public class ConnectionService extends Service {
 		}
 	}
 
+	/**
+	 * Creates an application message to send to the cloud in JSON
+	 * It will send the message immediately
+	 * @param s The Mobile Hub Message structure
+	 * @param sender The UUID of the Mobile Hub
+	 */
+	private void createAndSendJsonMsg(LocalMessage s, UUID sender) {
+		s.setUuid( sender.toString() );
+
+		try {
+			ApplicationMessage am = new ApplicationMessage();
+			am.setPayloadType( PayloadSerialization.JSON );
+			am.setContentObject( s.toJSON() );
+			am.setTagList( new ArrayList<String>() );
+			am.setSenderID( sender );
+
+			connection.sendMessage( am );
+		} catch (Exception e) {
+			AppUtils.logger( 'i', TAG, "Error sending..." );
+		}
+	}
+
 	@Subscribe() @SuppressWarnings("unused") // it's actually used to receive activity information and send to contextnet
 	public void onEvent( MatchmakingData matchmakingData ) {
 		if( matchmakingData != null && AppUtils.isInRoute( ROUTE_TAG, matchmakingData.getRoute() ) ) {
-			createAndSendMsg( matchmakingData, uuid );
+			createAndQueueJsonMsg( matchmakingData, uuid );
 		}
 	}
 
 	@Subscribe() @SuppressWarnings("unused") // it's actually used to receive from ActuatorActivity and send to contextnet
 	public void onEvent( SendActuatorData sendActuatorData ) {
 		if( sendActuatorData != null ) {
-			createAndSendMsg( sendActuatorData, uuid );
+            createAndQueueMsg( sendActuatorData, uuid );
 		}
 	}
 
 	@Subscribe() @SuppressWarnings("unused")	// it's actually used to receive from AnalyticsActivity and send to contextnet
 	public void onEvent( BuyAnalyticsData buyAnalyticsData ) {
 		if( buyAnalyticsData != null ) {
-			createAndSendMsg( buyAnalyticsData, uuid );
+            createAndQueueMsg( buyAnalyticsData, uuid );
+		}
+	}
+
+	@Subscribe() @SuppressWarnings("unused")	// it's actually used to receive from ActuatorActivity and send to contextnet
+	public void onEvent( SendAcknowledge sendAcknowledge ) {
+		if( sendAcknowledge != null ) {
+            createAndQueueMsg( sendAcknowledge, uuid );
 		}
 	}
 }

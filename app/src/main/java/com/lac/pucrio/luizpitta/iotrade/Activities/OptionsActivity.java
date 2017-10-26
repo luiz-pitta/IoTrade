@@ -94,7 +94,7 @@ public class OptionsActivity extends AppCompatActivity {
      * @param sensorPrice Object with the parameters to run the algorithm on the server.
      */
     private void updateSensorInformation(SensorPrice sensorPrice) {
-        mSubscriptions.add(NetworkUtil.getRetrofit().updateSensorInformation(sensorPrice)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).updateSensorInformation(sensorPrice)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponseUpdate,this::handleError));
@@ -114,7 +114,7 @@ public class OptionsActivity extends AppCompatActivity {
      *
      */
     private void getSensorInformation() {
-        mSubscriptions.add(NetworkUtil.getRetrofit().getSensorPrice()
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getSensorPrice()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleResponse,this::handleError));
