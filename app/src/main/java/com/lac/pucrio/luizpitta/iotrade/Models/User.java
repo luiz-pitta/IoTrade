@@ -19,6 +19,7 @@ public class User implements Serializable {
     private float accuracy;
     private UUID uuid;
     private boolean active = false;
+    private double velocity = -1;
     private double budget;
     /** Attributes */
 

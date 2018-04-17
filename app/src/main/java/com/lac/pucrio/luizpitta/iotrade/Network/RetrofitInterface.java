@@ -73,6 +73,12 @@ public interface RetrofitInterface {
     Observable<Response> getSensorAlgorithm(@Body ObjectServer objectServer);
 
     /**
+     * @return Returns the services without analytics of the matchmaking algorithm.
+     */
+    @POST("get_actuator_matchmaking/")
+    Observable<Response> getNewConnectionActuator(@Body ObjectServer objectServer);
+
+    /**
      * @return Returns the services with analytics of the matchmaking algorithm.
      */
     @POST("get_sensor_matchmaking_analytics/")
@@ -96,3 +102,8 @@ public interface RetrofitInterface {
     @POST("register_analytics")
     Observable<Response> setAnalyticsMobileHub(@Body User user);
 }
+
+
+
+
+

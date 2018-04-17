@@ -544,6 +544,8 @@ public class ResultActivity extends AppCompatActivity implements View.OnClickLis
         }else if(sendSensorData != null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB){
             keepCalculating = false;
 
+            Log.i( "Detect turn-off mhub", String.valueOf(Calendar.getInstance().getTimeInMillis()) );
+
             MatchmakingData msg = new MatchmakingData();
             SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
             msg.setUuidClient(AppUtils.getUuid(this).toString());

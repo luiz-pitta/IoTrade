@@ -582,6 +582,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
             intent.putExtra("connect_price", new ConnectPriceWrapper(response.getConnect()));
             intent.putExtra("analytics_price", new AnalyticsPriceWrapper(response.getAnalytics()));
+            ackConnection = true;
+            ackAnalytics = true;
 
             handler.postDelayed(new Runnable() {
                 @Override
@@ -599,11 +601,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                         setProgress(false);
 
-                        if(!ackAnalytics)
-                            setAnalyticsHubDisabled(response.getAnalytics());
+                        //if(!ackAnalytics)
+                        //    setAnalyticsHubDisabled(response.getAnalytics());
 
-                        if(!ackConnection)
-                            setMobileHubDisabled(response.getConnect());
+                        //if(!ackConnection)
+                        //    setMobileHubDisabled(response.getConnect());
                     }
 
                 }
@@ -657,6 +659,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra("sensor_price", new SensorPriceWrapper(response.getSensor()));
             intent.putExtra("connect_price", new ConnectPriceWrapper(response.getConnect()));
             intent.putExtra("analytics_price", new AnalyticsPriceWrapper(response.getAnalytics()));
+            ackConnection = true;
+
 
             handler.postDelayed(new Runnable() {
                 @Override
@@ -671,7 +675,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Toast.makeText(MainActivity.this, getResources().getString(R.string.try_again), Toast.LENGTH_LONG).show();
 
                         setProgress(false);
-                        setMobileHubDisabled(response.getConnect());
+                        //setMobileHubDisabled(response.getConnect());
                     }
 
 

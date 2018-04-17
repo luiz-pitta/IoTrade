@@ -1,27 +1,8 @@
 package com.lac.pucrio.luizpitta.iotrade.Utils;
 
 import android.app.ActivityManager;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothProfile;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.os.BatteryManager;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoCdma;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellInfoLte;
-import android.telephony.CellInfoWcdma;
-import android.telephony.CellSignalStrengthCdma;
-import android.telephony.CellSignalStrengthGsm;
-import android.telephony.CellSignalStrengthLte;
-import android.telephony.CellSignalStrengthWcdma;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.lac.pucrio.luizpitta.iotrade.Models.base.LocalMessage;
@@ -29,11 +10,8 @@ import com.lac.pucrio.luizpitta.iotrade.Models.locals.MessageData;
 import com.lac.pucrio.luizpitta.iotrade.Services.ConnectionService;
 
 import org.greenrobot.eventbus.EventBus;
-import org.json.JSONArray;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

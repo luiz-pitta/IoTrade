@@ -78,7 +78,7 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
     private ConnectPriceWrapper connectPriceWrapper;
     private AnalyticsPriceWrapper analyticsPriceWrapper;
     private double totalPrice = 0.0, timePassed = 0.0, priceTarget;
-    private long timeStart = 0, intervalDisconnection = 30;
+    private long timeStart = 0, intervalDisconnection = 15;
     private boolean keepRunning = true, keepCalculating = true, lostConnection = false;
     private Double currentPrice;
     private ActuatorAdapter adapter;
@@ -254,6 +254,19 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
                                 long lastTimeDiff = (System.currentTimeMillis() - lastTimeData)/1000;
                                 if(lastTimeDiff >= (intervalDisconnection*Constants.FACTOR) && !lostConnection) {
                                     lostConnection = true;
+
+                                    if(connectPriceWrapper != null) {
+                                        Response response;
+                                        SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
+                                        sensorPrice.setRank(1);
+
+                                        ConnectPrice connectPrice = connectPriceWrapper.getConnectPrice();
+                                        connectPrice.setRank(1);
+
+                                        response = new Response(sensorPrice, connectPrice, null);
+                                        updateSensorInformation(response);
+                                    }
+
                                     setMobileHubDisabled();
                                 }
                             }
@@ -329,15 +342,17 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
 
                             @Override
                             public void run() {
-                                //SEND ACK
-                                SendAcknowledge sendAcknowledge = new SendAcknowledge();
-                                sendAcknowledge.setUuidIoTrade(AppUtils.getUuid(ActuatorActivity.this).toString());
-                                sendAcknowledge.setUuidProvider(connectPriceWrapper.getConnectPrice().getUuid());
+                                if(connectPriceWrapper != null) {
+                                    //SEND ACK
+                                    SendAcknowledge sendAcknowledge = new SendAcknowledge();
+                                    sendAcknowledge.setUuidIoTrade(AppUtils.getUuid(ActuatorActivity.this).toString());
+                                    sendAcknowledge.setUuidProvider(connectPriceWrapper.getConnectPrice().getUuid());
 
-                                EventBus.getDefault().post(sendAcknowledge);
+                                    EventBus.getDefault().post(sendAcknowledge);
+                                }
                             }
                         });
-                        Thread.sleep(30000);
+                        Thread.sleep(15000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -350,12 +365,15 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
      * The method used to logout connectivity provider user.
      */
     private void setMobileHubDisabled() {
-        User user = new User();
-        user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
-        user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
-        user.setActive(false);
+        if(connectPriceWrapper != null) {
+            User user = new User();
+            user.setUuid(UUID.fromString(connectPriceWrapper.getConnectPrice().getUuid()));
+            user.setDevice(connectPriceWrapper.getConnectPrice().getDevice());
+            user.setActive(false);
 
-        registerLocation(user);
+            registerLocation(user);
+        }else
+            doMatchmaking();
     }
 
     /**
@@ -397,7 +415,11 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
         filter.setRadius(mSharedPreferences.getFloat("radius", 1.5f));
 
         filter.setService(title.getText().toString());
-        filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+        filter.setSensorMacAddress(sensorPriceWrapper.getSensorPrice().getMacAdress());
+        if(connectPriceWrapper != null)
+            filter.setConnectionDevice(connectPriceWrapper.getConnectPrice().getDevice());
+        else
+            filter.setConnectionDevice("");
 
         getSensorChosen(filter);
     }
@@ -408,7 +430,7 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
      * @param objectServer Object with the parameters to run the algorithm on the server.
      */
     private void getSensorChosen(ObjectServer objectServer) {
-        mSubscriptions.add(NetworkUtil.getRetrofit(this).getSensorAlgorithm(objectServer)
+        mSubscriptions.add(NetworkUtil.getRetrofit(this).getNewConnectionActuator(objectServer)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(this::handleSensorChosen,this::handleError));
@@ -469,6 +491,7 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
             keepCalculating = true;
 
             lostConnection = false;
+            lastTimeData = System.currentTimeMillis();
 
             MatchmakingData msg = new MatchmakingData();
             msg.setUuidClient(AppUtils.getUuid(this).toString());
@@ -484,6 +507,21 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
 
             sensorPriceWrapper = new SensorPriceWrapper(response.getSensor());
             connectPriceWrapper = new ConnectPriceWrapper(response.getConnect());
+
+            //TODO fazer para casos com quantidade de bytes maiores que 1
+            byte b = 0x00;
+            for(int i=0;i<adapter.getCount();i++){
+                if(activated.get(i))
+                    b = (byte) (b | Byte.valueOf(sensorPrice.getOptionBytes().get(i), 16));
+            }
+            byte[] DO_ACTUATION = new byte[]{b};
+
+            SendActuatorData sendActuatorData = new SendActuatorData();
+            sendActuatorData.setCommand(DO_ACTUATION);
+            sendActuatorData.setUuidData(sensorPrice.getUuidData());
+            sendActuatorData.setUuidHub(connectPriceWrapper.getConnectPrice().getUuid());
+
+            EventBus.getDefault().post(sendActuatorData);
         }
         else {
             keepRunning = false;
@@ -664,8 +702,9 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
     public void onEvent( SendSensorData sendSensorData ) {
         if( sendSensorData != null && sendSensorData.getData() == null && sendSensorData.getSource() == SendSensorData.MOBILE_HUB) {
             keepCalculating = false;
+            SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
 
-            MatchmakingData msg = new MatchmakingData();
+            /*MatchmakingData msg = new MatchmakingData();
             SensorPrice sensorPrice = sensorPriceWrapper.getSensorPrice();
             msg.setUuidClient(AppUtils.getUuid(this).toString());
             msg.setUuidMatch(connectPriceWrapper.getConnectPrice().getUuid());
@@ -676,9 +715,20 @@ public class ActuatorActivity extends AppCompatActivity implements View.OnClickL
             msg.setRoute(ConnectionService.ROUTE_TAG);
             msg.setPriority(LocalMessage.HIGH);
 
-            EventBus.getDefault().post(msg);
+            EventBus.getDefault().post(msg);*/
 
-            doMatchmaking();
+            Response response;
+            ConnectPrice connectPrice = connectPriceWrapper.getConnectPrice();
+
+            sensorPrice.setRank(1);
+            connectPrice.setRank(1);
+
+            response = new Response(sensorPrice, connectPrice, null);
+            updateSensorInformation(response);
+
+            connectPriceWrapper = null;
+
+            //doMatchmaking();
         }
     }
 

@@ -267,6 +267,7 @@ public class AnalyticsActivity extends AppCompatActivity implements View.OnClick
 
                                 time.setText(timeElapsed);
 
+                                //Detect internet loss in providers
                                 long lastTimeDiff = (System.currentTimeMillis() - lastTimeData)/1000;
                                 if(lastTimeDiff >= (intervalDisconnection* Constants.FACTOR) && !lostConnection && clicked) {
                                     lostConnection = true;
