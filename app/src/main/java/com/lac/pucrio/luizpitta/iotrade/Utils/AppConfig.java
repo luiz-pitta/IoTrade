@@ -78,14 +78,14 @@ public class AppConfig {
 	public static final int DEFAULT_MESSAGES_INTERVAL_MEDIUM = 500 * 5;
 	public static final int DEFAULT_MESSAGES_INTERVAL_LOW    = 500 * 4 * 3;
 
-	
+
 	/*
 	 * Default value for the ip address, the first address that the device
 	 * will connect to.
 	 * 
 	 * Default: onDevelopment --// not set //--
 	 */
-	public static final String DEFAULT_SDDL_IP_ADDRESS = "192.168.25.7";
+	public static final String DEFAULT_SDDL_IP_ADDRESS = "192.168.1.198";
 	
 	/*
 	 * Default value for the port used by the SDDL.
