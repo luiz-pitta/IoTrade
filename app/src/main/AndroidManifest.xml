@@ -34,7 +34,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBbg3jlffhS_2hg3D-6K3_cZuCDBPDzYrA" />
+            android:value="xxxxxxxxxxxxxxxxxxxxxxxxx" />
 
         <activity
             android:name=".Activities.MenuActivity"
